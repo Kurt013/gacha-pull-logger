@@ -353,10 +353,56 @@ label {
   gap: 8px;
 }
 
-/* Ensure the DataTable container keeps a fixed height */
+table, th, td {
+  border-collapse: collapse;
+}
+
+.dataTables_scroll {
+  border: 1px solid var(--dark-secondary-color);
+  border-radius: 5px;
+  overflow: hidden;
+  background-color: var(--dark-secondary-color);
+}
+
 .dataTables_scrollBody {
-  min-height: 121.5px !important;
-  max-height: 121.5px !important;
+  scrollbar-width: thick;
+  scrollbar-color: var(--dark-secondary-color) #E2D8C9;
+}
+
+/* Custom scrollbar styles */
+.dataTables_scrollBody::-webkit-scrollbar {
+  width: 10px; /* similar to scrollbar-width: thick */
+}
+
+.dataTables_scrollBody::-webkit-scrollbar-track {
+  background: #E2D8C9;
+}
+
+.dataTables_scrollBody::-webkit-scrollbar-thumb {
+  background-color: var(--dark-secondary-color);
+}
+
+/* current active button styling */
+.dataTables_wrapper .dataTables_paginate a.paginate_button.current {
+  color: var(--primary-color) !important;
+  background: var(--dark-secondary-color) !important;
+}
+
+/* Override hover styling */
+.dataTables_wrapper .dataTables_paginate a.paginate_button:hover {
+  color: var(--primary-color) !important;
+  background: var(--secondary-color) !important;
+}
+
+/* Disabled text on hover be visible */
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled, .dataTables_wrapper .dataTables_paginate a.paginate_button.disabled:hover {
+  color: var(--primary-color) !important;
+}
+
+/* Avoid current button to hover */
+.dataTables_wrapper .dataTables_paginate .paginate_button.current, .dataTables_wrapper .dataTables_paginate a.paginate_button.current:hover {
+  color: var(--primary-color) !important;
+  background: var(--dark-secondary-color) !important;
 }
 
 /* Add vertical borders between table columns */
@@ -393,7 +439,11 @@ label {
 
 /* Zebra rows */
 .table-card tbody tr:nth-child(even) {
-  background: var(--dark-primary-color);
+  background-color: var(--dark-primary-color);
+}
+
+.table-card tbody tr:nth-child(odd) {
+  background-color: var(--primary-color);
 }
 
 /* Hover */

@@ -11,7 +11,7 @@ DB_FILE <- "gacha_logger.db"
 conn_db <- function() dbConnect(SQLite(), DB_FILE)
 
 init_db <- function() {
-  conn <- conn_db()
+  conn <- dbConnect(SQLite(), DB_FILE)
   dbExecute(conn, "
     CREATE TABLE IF NOT EXISTS banners (
       banner_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -367,7 +367,7 @@ server <- function(input, output, session) {
       selection = "single",
       options = list(
         scrollCollapse = TRUE,
-        pageLength = 3,
+        pageLength = 10,
         scrollX = TRUE,
         scrollY = "130px",
         searching = FALSE,   
@@ -542,8 +542,3 @@ server <- function(input, output, session) {
 }
 
 shinyApp(ui, server)
-
-# For best user experience passte this command into the terminal first before
-# running the app
-
-# > options(shiny.launch.browser = TRUE)
