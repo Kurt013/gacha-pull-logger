@@ -33,8 +33,13 @@ init_db <- function() {
 }
 init_db()
 
-compute_pity <- function(conn) {
-  pulls <- dbGetQuery(conn, "SELECT rarity FROM pulls ORDER BY id")
+compute_pity <- function(conn, banner_name) {
+  pulls <- dbGetQuery(conn, "
+    SELECT rarity FROM pulls
+    JOIN banners ON pulls.banner_id = banners.banner_id
+    WHERE banners.banner_name = ?
+    ORDER BY pulls.id
+  ", params = list(banner_name))
   if (nrow(pulls) == 0) return(0)
   last5 <- tail(which(pulls$rarity == "5-Star"), 1)
   if (length(last5) == 0) return(nrow(pulls))
@@ -42,15 +47,23 @@ compute_pity <- function(conn) {
 }
 
 recalculate_all_pity <- function(conn) {
-  pulls <- dbGetQuery(conn, "SELECT id, rarity FROM pulls ORDER BY id")
-  pity <- 0
-  for (i in seq_len(nrow(pulls))) {
-    if (pulls$rarity[i] == "5-Star") {
-      pity <- 0
-    } else {
-      pity <- pity + 1
+  banners <- dbGetQuery(conn, "SELECT banner_name FROM banners")
+  for (banner in banners$banner_name) {
+    pulls <- dbGetQuery(conn, "
+      SELECT pulls.id, pulls.rarity FROM pulls
+      JOIN banners ON pulls.banner_id = banners.banner_id
+      WHERE banners.banner_name = ?
+      ORDER BY pulls.id
+    ", params = list(banner))
+    pity <- 0
+    for (i in seq_len(nrow(pulls))) {
+      if (pulls$rarity[i] == "5-Star") {
+        pity <- 0
+      } else {
+        pity <- pity + 1
+      }
+      dbExecute(conn, "UPDATE pulls SET pity = ? WHERE id = ?", list(pity, pulls$id[i]))
     }
-    dbExecute(conn, "UPDATE pulls SET pity = ? WHERE id = ?", list(pity, pulls$id[i]))
   }
 }
 
@@ -132,8 +145,8 @@ ui <- fluidPage(
             selectInput(
               inputId = "banner",
               label   = "Banner",
-              choices = c("Character", "Weapon", "Standard"),
-              selected = "Character"
+              choices = c("Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
+              selected = "Character Event Wish"
             ),
             div(class = "date-container",
               HTML('
@@ -238,8 +251,8 @@ ui <- fluidPage(
                   selectInput(
                     inputId = "filter",
                     label   = "Filter By: ",
-                    choices = c("All", "Character", "Weapon", "Standard"),
-                    selected = "All"
+                    choices = c("All (Banner)", "Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
+                    selected = "All (Banner)"
                   )
               )
           ),
@@ -347,7 +360,7 @@ server <- function(input, output, session) {
 
     # Apply banner filter if not "All"
     banner_filter <- input$filter
-    if (!is.null(banner_filter) && banner_filter != "All") {
+    if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
       df <- df[df$banner == banner_filter, , drop = FALSE]
     }
     
@@ -399,7 +412,7 @@ server <- function(input, output, session) {
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
     
-    pity <- compute_pity(conn) + 1
+    pity <- compute_pity(conn, input$banner) + 1
     if (input$rarity == "5-Star") pity <- 0
     
     dbExecute(
@@ -528,10 +541,9 @@ server <- function(input, output, session) {
 
   clear_fields <- function() {
     updateTextInput(session, "name", value = "")
-    
     updateSelectInput(session, "type", selected = "Weapon")
     updateSelectInput(session, "rarity", selected = "3-Star")
-    updateSelectInput(session, "banner", selected = "Character")
+    updateSelectInput(session, "banner", selected = "Character Event Wish")
     
     updateDateInput(
       session,
