@@ -67,6 +67,21 @@ body {
   font-size: 16px;
 }
 
+/* Override shinyToastr styling */
+#toast-container>div.toast {
+  font-family: "ContentFont";
+  box-shadow: none;
+  opacity: 1;
+}
+
+#toast-container>.toast-success {
+  background-color: var(--green);
+}
+
+#toast-container>.toast-error {
+  background-color: var(--red);
+}
+
 .header-title {
   color: var(--dark-secondary-color);
   text-align: center;

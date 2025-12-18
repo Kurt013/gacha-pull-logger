@@ -1,4 +1,5 @@
 library(shiny)
+library(shinytoastr)
 library(DT)
 library(DBI)
 library(RSQLite)
@@ -71,7 +72,8 @@ recalculate_all_pity <- function(conn) {
 # UI
 # -------------------------
 ui <- fluidPage(
-  
+  shinytoastr::useToastr(),
+
   tags$head(
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
 
@@ -427,7 +429,7 @@ server <- function(input, output, session) {
       input$banner
     )$banner_id
     
-    dbExecute(
+    result <- dbExecute(
       conn,
       "INSERT INTO pulls (banner_id, type, name, rarity, pull_date, pity)
        VALUES (?, ?, ?, ?, ?, ?)",
@@ -440,7 +442,15 @@ server <- function(input, output, session) {
         pity
       )
     )
-    
+  
+    if (result == 1) {
+      # Success
+      shinytoastr::toastr_success("Pull added successfully!", progressBar = TRUE, showMethod = "slideDown")
+    } else {
+      # Failure
+      shinytoastr::toastr_error("Failed to add pull.", progressBar = TRUE, showMethod = "slideDown")
+    }
+
     clear_fields()
     recalculate_all_pity(conn)
     refresh()
@@ -492,7 +502,7 @@ server <- function(input, output, session) {
     )$banner_id
     
     # Update the pull
-    dbExecute(
+    result <- dbExecute(
       conn,
       "UPDATE pulls SET banner_id = ?, type = ?, name = ?, rarity = ?, pity = ?
       WHERE id = ?",
@@ -505,6 +515,14 @@ server <- function(input, output, session) {
         row_id
       )
     )
+
+    if (result == 1) {
+      # Success
+      shinytoastr::toastr_success("Pull updated successfully!", progressBar = TRUE, showMethod = "slideDown")
+    } else {
+      # Failure
+      shinytoastr::toastr_error("Failed to update pull.", progressBar = TRUE, showMethod = "slideDown")
+    }
     
     clear_fields()
     recalculate_all_pity(conn)
@@ -523,11 +541,19 @@ server <- function(input, output, session) {
     if (length(selected_row) == 0) return()
     row_id <- df$id[selected_row]
     
-    dbExecute(
+    result <- dbExecute(
       conn,
       "DELETE FROM pulls WHERE id = ?",
       row_id
     )
+
+    if (result == 1) {
+      # Success
+      shinytoastr::toastr_success("Pull deleted successfully!", progressBar = TRUE, showMethod = "slideDown")
+    } else {
+      # Failure
+      shinytoastr::toastr_error("Failed to delete pull.", progressBar = TRUE, showMethod = "slideDown")
+    }
 
     clear_fields()
     recalculate_all_pity(conn)
