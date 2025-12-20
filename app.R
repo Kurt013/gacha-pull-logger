@@ -56,14 +56,14 @@ recalculate_all_pity <- function(conn) {
       WHERE banners.banner_name = ?
       ORDER BY pulls.id
     ", params = list(banner))
-    pity <- 0
+    pity <- 1
     for (i in seq_len(nrow(pulls))) {
+      dbExecute(conn, "UPDATE pulls SET pity = ? WHERE id = ?", list(pity, pulls$id[i]))
       if (pulls$rarity[i] == "5-Star") {
-        pity <- 0
+        pity <- 1
       } else {
         pity <- pity + 1
       }
-      dbExecute(conn, "UPDATE pulls SET pity = ? WHERE id = ?", list(pity, pulls$id[i]))
     }
   }
 }
@@ -433,8 +433,7 @@ server <- function(input, output, session) {
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
     
-    pity <- compute_pity(conn, input$banner) + 1
-    if (input$rarity == "5-Star") pity <- 0
+    pity <- compute_pity(conn, input$banner)
     
     dbExecute(
       conn,
