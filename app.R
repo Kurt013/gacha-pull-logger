@@ -728,19 +728,21 @@ server <- function(input, output, session) {
     if (nrow(rare_pulls) == 0) {
       return(div(class = "no-pulls", "No rare pulls recorded yet"))
     }
+    # SVG star icon
+    star_svg <- HTML('
+      <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align:middle;">
+        <path d="M17.4536 6.28335C17.3987 6.12135 17.2974 5.97901 17.1624 5.8739C17.0275 5.76878 16.8647 5.7055 16.6941 5.69185L11.7058 5.29547L9.54715 0.517097C9.4784 0.363195 9.36658 0.232478 9.22519 0.140722C9.08379 0.048966 8.91887 9.26441e-05 8.75031 1.31581e-07C8.58175 -9.2381e-05 8.41677 0.0486 8.27527 0.140201C8.13377 0.231801 8.02181 0.362396 7.9529 0.516222L5.79427 5.29547L0.805898 5.69185C0.638296 5.70512 0.478069 5.76641 0.344384 5.86836C0.210698 5.97032 0.109217 6.10863 0.0520795 6.26675C-0.00505783 6.42487 -0.0154315 6.5961 0.0221998 6.75996C0.0598311 6.92382 0.143874 7.07337 0.264273 7.19072L3.95065 10.7843L2.6469 16.4298C2.60731 16.6007 2.62 16.7796 2.68332 16.9432C2.74663 17.1067 2.85765 17.2475 3.00198 17.3472C3.1463 17.4469 3.31725 17.501 3.49266 17.5023C3.66807 17.5036 3.83983 17.4522 3.98565 17.3547L8.75002 14.1785L13.5144 17.3547C13.6634 17.4537 13.8392 17.5046 14.0181 17.5007C14.1969 17.4968 14.3703 17.4382 14.5149 17.3328C14.6594 17.2274 14.7683 17.0802 14.8267 16.9112C14.8851 16.7421 14.8904 16.5591 14.8418 16.387L13.2414 10.787L17.2104 7.21522C17.4703 6.98072 17.5657 6.61497 17.4536 6.28335Z" fill="currentColor"/>
+      </svg>
+    ')
     pull_items <- lapply(seq_len(nrow(rare_pulls)), function(i) {
       row <- rare_pulls[i, ]
-      star_class <- if (row$rarity == "5-Star") "stars-5" else "stars-4"
+      star_count <- if (row$rarity == "5-Star") 5 else 4
+      stars_html <- HTML(paste(rep(as.character(star_svg), star_count), collapse = ""))
       border_color <- if (row$rarity == "5-Star") "gold" else "purple"
-      stars <- if (row$rarity == "5-Star") {
-        paste(rep("\u2605", 5), collapse = "")
-      } else {
-        paste(rep("\u2605", 4), collapse = "")
-      }
       div(class = paste("recent-pull-item", border_color),
-        span(class = paste("pull-stars", star_class), stars),
+        span(class = "pull-stars", stars_html),
         span(class = "pull-name", row$name),
-        span(class = paste("pull-pity", star_class), row$pity)
+        span(class = paste("pull-pity", if (row$rarity == "5-Star") "stars-5" else "stars-4"), row$pity)
       )
     })
     do.call(tagList, pull_items)
