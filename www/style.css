@@ -680,6 +680,18 @@ table, th, td {
   position: relative;
 }
 
+.soft-pity-indicator {
+  position: absolute;
+  top: 0;
+  left: 82.2%; /* (74/90)*100 */
+  transform: translateX(-50%);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+
 .pity-indicator {
   position: absolute;
   top: 0;
@@ -711,12 +723,23 @@ table, th, td {
 
 .pity-markers {
   display: flex;
-  justify-content: space-between;
   margin-top: 4px;
   font-family: "InterFont";
   font-size: 10px;
   color: #8d8d8d;
   letter-spacing: 0.5px;
+}
+
+.marker {
+  text-align: end;
+}
+
+.marker.soft-pity {
+  flex-basis: 86.2%; /* (74/90)*100 */
+}
+
+.marker.hard-pity {
+  flex: 1; /* (74/90)*100 */
 }
 
 .soft-pity {
@@ -824,6 +847,9 @@ table, th, td {
   flex: 1;
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
+  min-height: 277.163px;
 }
 
 .trends-placeholder {

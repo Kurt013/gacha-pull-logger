@@ -3,6 +3,7 @@ library(shinytoastr)
 library(DT)
 library(DBI)
 library(RSQLite)
+library(plotly)
 
 DB_FILE <- "gacha_logger.db"
 
@@ -361,7 +362,15 @@ ui <- fluidPage(
                 ),
                 div(class = "pity-bar-container",
                   div(class = "pity-bar-bg",
-                    div(class = "pity-bar-fill", style = "width: 0%", id = "pity-fill")
+                    div(class = "pity-bar-fill", style = "width: 0%", id = "pity-fill"),
+                    # Soft pity indicator SVG at 74
+                    span(class = "soft-pity-indicator",
+                      HTML('
+                        <svg xmlns="http://www.w3.org/2000/svg" width="4" height="9" viewBox="0 0 1 9" fill="none">
+                          <path d="M0.25 0L0.25 9" stroke="#161A3E" stroke-width="0.5"/>
+                        </svg>
+                      ')
+                    )
                   ),
                   div(class = "pity-markers",
                     span(class = "marker", "0"),
@@ -383,7 +392,7 @@ ui <- fluidPage(
                 span("Pull Trends")
               ),
               div(class = "trends-chart-area",
-                div(class = "trends-placeholder", "Pull trends chart coming soon")
+                plotlyOutput("pull_trends_chart", width = "100%", height = "100%")
               )
             )
           )
@@ -649,16 +658,19 @@ server <- function(input, output, session) {
     format(nrow(df) * 160, big.mark = ",")
   })
 
-  # Luck Index (5-star rate)
+  # Luck Index (expected pity / average pity)
   output$luck_index <- renderText({
     df <- data()
 
     if (is.null(df) || nrow(df) == 0) {
-      return("0%")
+      return("N/A")
     }
 
-    five_star_count <- sum(df$rarity == "5-Star")
-    sprintf("%.2f%%", 100 * five_star_count / nrow(df))
+    five_stars <- df[df$rarity == "5-Star", ]
+    if (nrow(five_stars) == 0) return("N/A")
+    avg_pity <- mean(five_stars$pity, na.rm = TRUE)
+    luck_index <- 75 / avg_pity
+    sprintf("%.2f%%", luck_index)
   })
 
   # Average Pity
@@ -747,6 +759,139 @@ server <- function(input, output, session) {
     })
     do.call(tagList, pull_items)
   })
+
+output$pull_trends_chart <- renderPlotly({
+    df <- data()
+    if (nrow(df) == 0) {
+      plotly_empty(type = "scatter", mode = "lines") %>%
+        layout(
+          xaxis = list(title = "Month"),
+          yaxis = list(title = "Number of Pulls"),
+          annotations = list(
+            list(
+              text = "No data available",
+              xref = "paper", yref = "paper",
+              x = 0.5, y = 0.5, showarrow = FALSE
+            )
+          )
+        )
+    } else {
+      # Filter by selected banner
+      banner_filter <- input$progress_banner
+      if (!is.null(banner_filter) && banner_filter != "") {
+        df <- df[df$banner == banner_filter, , drop = FALSE]
+      }
+      if (nrow(df) == 0) {
+        plotly_empty(type = "scatter", mode = "lines") %>%
+          layout(
+            xaxis = list(
+              title = "Month",
+              type = "category",
+              titlefont = list(
+                family = "ContentFont, sans-serif",  # or your custom font
+                color = "#F3EFE4"
+              )
+            ),
+            yaxis = list(
+              title = "Number of Pulls",
+                titlefont = list(
+                family = "ContentFont, sans-serif",  # or your custom font
+                color = "#F3EFE4"
+              )
+            ),
+            plot_bgcolor = "#161A3E",                  # plot area background
+            paper_bgcolor = "#161A3E",                 # full figure background
+            font = list(
+              color = "#F3EFE4",
+              family = "Inter, sans-serif",
+              weight = "normal"
+            ),   
+            annotations = list(
+              list(
+                text = "No data for selected banner",
+                xref = "paper", yref = "paper",
+                x = 0.5, y = 0.5, showarrow = FALSE
+              )
+            )
+          )
+      } else {
+        # Filter by selected banner
+        banner_filter <- input$progress_banner
+        if (!is.null(banner_filter) && banner_filter != "") {
+          df <- df[df$banner == banner_filter, , drop = FALSE]
+        }
+
+        df$month <- format(as.Date(df$pull_date), "%Y-%m")
+        # Count pulls per rarity per month independently
+        library(dplyr)
+        agg <- df %>%
+          group_by(month, rarity) %>%
+          summarise(count = n(), .groups = "drop")
+        # Ensure all combinations exist
+        all_months <- sort(unique(df$month))
+        all_rarities <- c("3-Star", "4-Star", "5-Star")
+        complete_agg <- tidyr::complete(
+          agg,
+          month = all_months,
+          rarity = all_rarities,
+          fill = list(count = 0)
+        )
+        # Plot each rarity as its own area (not stacked)
+        plot_ly(complete_agg, x = ~month) %>%
+          add_trace(
+            data = subset(complete_agg, rarity == "3-Star"),
+            y = ~count, name = "3-Star",
+            type = "scatter", mode = "lines", fill = "tozeroy",
+            fillcolor = "#5687F24D", line = list(color = "#5687F2")
+          ) %>%
+          add_trace(
+            data = subset(complete_agg, rarity == "4-Star"),
+            y = ~count, name = "4-Star",
+            type = "scatter", mode = "lines", fill = "tozeroy",
+            fillcolor = "#a259ec4D", line = list(color = "#a259ec")
+          ) %>%
+          add_trace(
+            data = subset(complete_agg, rarity == "5-Star"),
+            y = ~count, name = "5-Star",
+            type = "scatter", mode = "lines", fill = "tozeroy",
+            fillcolor = "#DEAA084D", line = list(color = "#F6C800")
+          ) %>%
+          layout(
+            xaxis = list(
+              title = "Month",
+              type = "category",
+              titlefont = list(
+                family = "ContentFont, sans-serif",  # or your custom font
+                color = "#F3EFE4"
+              )
+            ),
+            yaxis = list(
+              title = "Number of Pulls",
+                titlefont = list(
+                family = "ContentFont, sans-serif",  # or your custom font
+                color = "#F3EFE4"
+              )
+            ),
+            plot_bgcolor = "#161A3E",                  # plot area background
+            paper_bgcolor = "#161A3E",                 # full figure background
+            font = list(
+              color = "#F3EFE4",
+              family = "Inter, sans-serif",
+              weight = "normal"
+            ),    
+            hovermode = "x unified",
+            legend = list(
+              orientation = "h",
+              x = 0.5,
+              y = -0.3,
+              xanchor = "center",
+              yanchor = "top"
+            )
+          )
+      }
+    }
+  })
+
 }
 
 shinyApp(ui, server)
