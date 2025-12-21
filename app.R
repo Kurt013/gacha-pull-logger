@@ -114,9 +114,102 @@ ui <- fluidPage(
           }
         });
       });
+    ")),
+    tags$script(HTML("
+      // Toggle password visibility
+      $(document).on('click', '.password-toggle', function() {
+        var input = $('#login_password');
+        var icon = $(this);
+        if (input.attr('type') === 'password') {
+          input.attr('type', 'text');
+          icon.addClass('visible');
+        } else {
+          input.attr('type', 'password');
+          icon.removeClass('visible');
+        }
+      });
     "))
   ),
   
+  # Login Panel (shown when not logged in)
+  conditionalPanel(
+    condition = "!output.logged_in",
+    div(class = "login-page",
+      div(class = "blur-overlay"),
+      div(class = "login-panel",
+        # Decorative border image
+        img(class = "login-border", src = "assets/login_border.png"),
+        
+        # Login content
+        div(class = "login-content",
+          # Title section
+          div(class = "login-title",
+            div(class = "welcome-text",
+              span(class = "welcome-main", "Welcome"),
+              span(class = "welcome-sub", "Traveler")
+            ),
+            # Subtext box with decorative element
+            div(class = "login-subtext-box",
+              div(class = "login-decoration",
+                HTML('
+                  <svg xmlns="http://www.w3.org/2000/svg" width="177" height="131" viewBox="0 0 177 131" fill="none">
+                    <path d="M88.4004 2.86328C88.5518 3.63841 88.7402 4.55663 88.9717 5.59375C89.729 8.98703 90.9369 13.659 92.7422 18.7734C96.3458 28.9826 102.356 41.0407 111.979 48.1631C121.578 55.2687 137.813 59.702 151.568 62.3623C158.461 63.6952 164.757 64.5873 169.33 65.1465C170.217 65.2549 171.039 65.3494 171.788 65.4336C171.039 65.5178 170.217 65.6132 169.33 65.7217C164.757 66.2809 158.461 67.1739 151.568 68.5068C137.813 71.1671 121.578 75.6004 111.979 82.7061C102.357 89.8285 96.3458 101.887 92.7422 112.096C90.937 117.21 89.729 121.881 88.9717 125.274C88.7403 126.311 88.5518 127.229 88.4004 128.004C88.249 127.229 88.0604 126.311 87.8291 125.274C87.0718 121.881 85.8637 117.21 84.0586 112.096C80.4549 101.886 74.4435 89.8285 64.8213 82.7061C55.2217 75.6004 38.9878 71.1671 25.2324 68.5068C18.3401 67.1739 12.0437 66.2809 7.4707 65.7217C6.58356 65.6132 5.76112 65.5178 5.01172 65.4336C5.76109 65.3494 6.5836 65.255 7.4707 65.1465C12.0437 64.5873 18.3402 63.6953 25.2324 62.3623C38.9876 59.7021 55.2217 55.2686 64.8213 48.1631C74.4435 41.0407 80.4549 28.9827 84.0586 18.7734C85.8639 13.6591 87.0718 8.98702 87.8291 5.59375C88.0606 4.55663 88.2489 3.63841 88.4004 2.86328Z" fill="#F5F1E6" stroke="#EEE6D9"/>
+                    <path d="M88.3008 16.2457C88.3008 16.2457 91.893 41.089 105.885 51.4565C119.877 61.824 153.406 64.4856 153.406 64.4856C153.406 64.4856 119.877 67.1473 105.885 77.5148C91.893 87.8823 88.3008 112.726 88.3008 112.726C88.3008 112.726 84.7085 87.8823 70.7163 77.5148C56.7241 67.1473 23.1951 64.4856 23.1951 64.4856C23.1951 64.4856 56.7241 61.824 70.7163 51.4565C84.7085 41.089 88.3008 16.2457 88.3008 16.2457Z" fill="#EFE7DA"/>
+                  </svg>
+                ')
+              ),
+              p(class = "login-subtext", "Log in and turn your pulls into"),
+              p(class = "login-subtext-highlight", "insights")
+            )
+          ),
+          
+          # Input fields
+          div(class = "login-fields",
+            div(class = "login-input-group",
+              tags$label(`for` = "login_username", "Username"),
+              textInput("login_username", label = NULL, placeholder = "")
+            ),
+            div(class = "login-input-group password-group",
+              tags$label(`for` = "login_password", "Password"),
+              passwordInput("login_password", label = NULL, placeholder = ""),
+              div(class = "password-toggle",
+                HTML('
+                  <svg class="icon-hidden" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M8.073 12.194L4.212 8.33297C2.692 9.98997 2.116 11.65 2.106 11.684L2 12L2.105 12.316C2.127 12.383 4.421 19 12.054 19C12.983 19 13.829 18.898 14.606 18.727L11.86 15.981C10.8713 15.9325 9.93595 15.518 9.23598 14.818C8.53601 14.118 8.12147 13.1827 8.073 12.194ZM12.054 4.99997C10.199 4.99997 8.679 5.40397 7.412 5.99797L3.707 2.29297L2.293 3.70697L20.293 21.707L21.707 20.293L18.409 16.995C21.047 15.042 21.988 12.358 22.002 12.316L22.107 12L22.002 11.684C21.98 11.617 19.687 4.99997 12.054 4.99997ZM13.96 12.546C14.147 11.869 13.988 11.107 13.468 10.586C12.948 10.065 12.185 9.90697 11.508 10.094L10 8.58597C10.618 8.20595 11.3285 8.00322 12.054 7.99997C14.26 7.99997 16.054 9.79397 16.054 12C16.051 12.7253 15.8479 13.4357 15.467 14.053L13.96 12.546Z" fill="#161A3E"/>
+                  </svg>
+                  <svg class="icon-visible" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 12C12.905 12 12 11.095 12 10C12 9.646 12.103 9.317 12.268 9.027C12.178 9.02 12.092 9 12 9C11.206 9.00524 10.4459 9.32299 9.88447 9.88447C9.32299 10.4459 9.00524 11.206 9 12C9 13.642 10.358 15 12 15C13.641 15 15 13.642 15 12C15 11.908 14.98 11.822 14.973 11.732C14.683 11.897 14.354 12 14 12Z" fill="url(#paint0_linear_181_334)"/>
+                    <path d="M12 5C4.36701 5 2.07301 11.617 2.05201 11.684L1.94601 12L2.05101 12.316C2.07301 12.383 4.36701 19 12 19C19.633 19 21.927 12.383 21.948 12.316L22.054 12L21.949 11.684C21.927 11.617 19.633 5 12 5ZM12 17C6.64901 17 4.57601 13.154 4.07401 12C4.57801 10.842 6.65201 7 12 7C17.351 7 19.424 10.846 19.926 12C19.422 13.158 17.348 17 12 17Z" fill="url(#paint1_linear_181_334)"/>
+                    <defs>
+                      <linearGradient id="paint0_linear_181_334" x1="12" y1="9" x2="12" y2="15" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#161A3E"/>
+                        <stop offset="1" stop-color="#3A45A4"/>
+                      </linearGradient>
+                      <linearGradient id="paint1_linear_181_334" x1="2" y1="12" x2="22" y2="12" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#161A3E"/>
+                        <stop offset="1" stop-color="#3A45A4"/>
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                ')
+              )
+            )
+          ),
+          
+          # Login button
+          actionButton(
+            "login_btn",
+            label = "Login",
+            class = "btn-login"
+          )
+        )
+      )
+    )
+  ),
+  
+  # Main App (shown when logged in)
+  conditionalPanel(
+    condition = "output.logged_in",
     div(class ="container",   
       # Title
       div(class = "header-title",
@@ -146,7 +239,7 @@ ui <- fluidPage(
           )
         ),
 
-        div(id = "logger-panel", class="logger-content inactive",
+        div(id = "logger-panel", class="logger-content active",
           div(class= "input-card",
             div(class = "col col-1",
               selectInput(
@@ -289,7 +382,7 @@ ui <- fluidPage(
         # Analytics Panel (hidden by default)
         div(
           id = "analytics-panel",
-          class = "analytics-content active",
+          class = "analytics-content inactive",
           # Left column
           div(class = "analytics-left",
             # Overall Statistics Card
@@ -392,19 +485,43 @@ ui <- fluidPage(
                 span("Pull Trends")
               ),
               div(class = "trends-chart-area",
-                plotlyOutput("pull_trends_chart", width = "100%", height = "100%")
+                plotlyOutput("pull_trends_chart", width = "100%", height = "277.163px")
               )
             )
           )
         )
       )
     )
-  )
+  ) # End of conditionalPanel for main app
+)
 
 # -------------------------
 # SERVER
 # -------------------------
 server <- function(input, output, session) {
+  # ---- Authentication state ----
+  logged_in <- reactiveVal(FALSE)
+  
+  # Output for conditionalPanel
+  output$logged_in <- reactive({
+    logged_in()
+  })
+  outputOptions(output, "logged_in", suspendWhenHidden = FALSE)
+  
+  # Login handler
+  observeEvent(input$login_btn, {
+    username <- input$login_username
+    password <- input$login_password
+    
+    # Authentication
+    if (identical(username, "Kurt013") && identical(password, "@GenshinImpact13")) {
+      logged_in(TRUE)
+      shinytoastr::toastr_success("Welcome, Traveler!", progressBar = TRUE, showMethod = "slideDown")
+    } else {
+      shinytoastr::toastr_error("Invalid username or password.", progressBar = TRUE, showMethod = "slideDown")
+    }
+  })
+  
   # ---- Reactive data holder ----
   data <- reactiveVal(data.frame())
 
