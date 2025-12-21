@@ -84,6 +84,18 @@ ui <- fluidPage(
       });
     ")),
     tags$script(HTML("
+      Shiny.addCustomMessageHandler('updatePityBar', function(message) {
+        var pct = message.width;
+        $('#pity-fill').css('width', pct + '%');
+        // Scale gradient so it shows only the portion up to current pity
+        // At pct%, we want to see 0-pct% of the full gradient
+        if (pct > 0) {
+          var bgSize = (100 / pct) * 100;
+          $('#pity-fill').css('background-size', bgSize + '% 100%');
+        }
+      });
+    ")),
+    tags$script(HTML("
       $(function() {
         $(document).on('click', '.nav-tab', function() {
           // Remove active class from all tabs
@@ -133,7 +145,7 @@ ui <- fluidPage(
           )
         ),
 
-        div(id = "logger-panel", class="active",
+        div(id = "logger-panel", class="logger-content inactive",
           div(class= "input-card",
             div(class = "col col-1",
               selectInput(
@@ -276,7 +288,7 @@ ui <- fluidPage(
         # Analytics Panel (hidden by default)
         div(
           id = "analytics-panel",
-          class = "analytics-content inactive",
+          class = "analytics-content active",
           # Left column
           div(class = "analytics-left",
             # Overall Statistics Card
@@ -304,7 +316,12 @@ ui <- fluidPage(
             # Recent Pulls Card
             div(class = "stats-card recent-pulls-card",
               div(class = "stats-card-header",
-                HTML('<svg xmlns="http://www.w3.org/2000/svg" width="19" height="15" viewBox="0 0 19 15" fill="none"><path d="M12.3929 3.5C12.3929 5.433 10.6591 7 8.5 7C6.34093 7 4.60715 5.433 4.60715 3.5C4.60715 1.567 6.34093 0 8.5 0C10.6591 0 12.3929 1.567 12.3929 3.5Z" fill="#222648"/><path d="M17 4.5C16.798 4.5 12.15 4.529 8 6.508C3.85 4.529 -0.798 4.5 -1 4.5C-1.26522 4.5 -1.51957 4.60536 -1.70711 4.79289C-1.89464 4.98043 -2 5.23478 -2 5.5V15.383C-2 15.5172 -1.97299 15.65 -1.9206 15.7735C-1.8682 15.897 -1.79148 16.0087 -1.695 16.102C-1.5 16.29 -1.215 16.407 -0.966 16.382L-0.839 16.381C-0.156 16.381 3.457 16.479 7.577 18.406C7.593 18.414 7.611 18.411 7.627 18.417C7.746 18.466 7.871 18.5 8 18.5C8.129 18.5 8.254 18.466 8.374 18.417C8.39 18.411 8.408 18.414 8.424 18.406C12.544 16.478 16.157 16.381 16.84 16.381L16.967 16.382C17.205 16.407 17.5 16.29 17.696 16.102C17.89 15.913 18 15.653 18 15.383V5.5C18 5.23478 17.8946 4.98043 17.7071 4.79289C17.5196 4.60536 17.2652 4.5 17 4.5ZM0 6.549C1.485 6.66 4.381 7.029 7 8.241V15.983C4 14.808 1.41 14.489 0 14.407V6.549ZM16 14.407C14.59 14.489 12 14.808 9 15.983V8.241C11.619 7.029 14.515 6.66 16 6.549V14.407Z" fill="#222648"/></svg>'),
+                HTML('
+                  <svg xmlns="http://www.w3.org/2000/svg" width="19" height="15" viewBox="0 0 19 15" fill="none">
+                    <path d="M6.54015 0.460536C6.48 0.410343 6.40729 0.378667 6.33103 0.369418C6.25476 0.36017 6.17826 0.373753 6.11098 0.408493L4.14356 1.42583L2.16795 0.0712252C2.10461 0.0274134 2.03078 0.00275185 1.95536 0.00021715C1.87995 -0.00231755 1.80617 0.0173828 1.74294 0.0569407C1.6797 0.0964986 1.62972 0.154223 1.59901 0.223148C1.5683 0.292073 1.55818 0.369252 1.56988 0.445371L1.92668 2.81443L0.152716 4.14061C0.0931037 4.18516 0.0479715 4.24667 0.0227189 4.31779C-0.00253367 4.38892 -0.00683747 4.46664 0.0103225 4.54167C0.0274824 4.61669 0.0653795 4.68584 0.11948 4.74084C0.17358 4.79584 0.241593 4.83437 0.315381 4.8518L2.57479 5.38596L3.46358 7.8917C3.49043 7.96757 3.53884 8.03427 3.6025 8.08313C3.66617 8.13199 3.74216 8.16076 3.82061 8.1657C3.89906 8.17065 3.97636 8.15154 4.04246 8.11086C4.10857 8.07017 4.16043 8.0098 4.19133 7.93756L5.2029 5.58095L7.76471 5.69927C7.84476 5.70282 7.9231 5.68138 7.98922 5.63783C8.05534 5.59429 8.10605 5.53074 8.13455 5.45572C8.16304 5.3807 8.16794 5.29781 8.14859 5.2182C8.12925 5.1386 8.08658 5.06609 8.02633 5.01044L6.05956 3.2046L6.67634 0.880734C6.71657 0.728329 6.66308 0.563429 6.54015 0.460536Z" fill="#171B41"/>
+                    <path d="M18.6387 9.18034C18.6539 9.0839 18.6412 8.9859 18.6023 8.89844C18.5634 8.81097 18.5 8.73787 18.4198 8.68815L16.0734 7.23527L16.258 4.2563C16.2643 4.16054 16.2435 4.06582 16.1979 3.98356C16.1524 3.9013 16.0841 3.83502 16.0014 3.79271C15.9186 3.7504 15.8249 3.73388 15.7316 3.74514C15.6383 3.75639 15.5493 3.79495 15.4753 3.85615L13.1705 5.75317L10.6176 4.70473C10.5319 4.66948 10.4372 4.66057 10.345 4.67907C10.2528 4.69757 10.1669 4.74269 10.0977 4.80903C10.0285 4.87537 9.97877 4.96013 9.95457 5.05316C9.93036 5.14619 9.93268 5.24356 9.96124 5.33361L10.8355 8.0912L8.72475 10.6445C8.6608 10.7217 8.62045 10.8162 8.60894 10.9155C8.59742 11.0148 8.61527 11.1145 8.66017 11.2015C8.70507 11.2886 8.77495 11.359 8.86074 11.4037C8.94653 11.4483 9.04426 11.4652 9.14126 11.452L12.3082 11.0261L13.8205 13.841C13.8679 13.9288 13.941 13.9989 14.0298 14.0417C14.1187 14.0846 14.2191 14.0981 14.3175 14.0806C14.4159 14.0631 14.5077 14.0153 14.5805 13.9437C14.6532 13.8721 14.7034 13.7801 14.7244 13.6801L15.3971 10.4219L18.2765 9.59476C18.4652 9.54028 18.6073 9.3776 18.6387 9.18034Z" fill="#171B41"/>
+                  </svg>
+                '),
                 span("Recent Pulls")
               ),
               uiOutput("recent_pulls_list")
@@ -316,15 +333,18 @@ ui <- fluidPage(
             div(class = "stats-card current-progress",
               div(class = "progress-header",
                 div(class = "progress-title",
-                  HTML('<svg xmlns="http://www.w3.org/2000/svg" width="25" height="24" viewBox="0 0 25 24" fill="none"><path d="M20.0312 18V6.5" stroke="#161A3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12.5156 18V3" stroke="#161A3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 18V10.5" stroke="#161A3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
+                  HTML('
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="24" viewBox="0 0 26 24" fill="none">
+                      <path d="M13.5583 6H15.6442V17H13.5583V6ZM17.7301 3H19.816V17H17.7301V3ZM9.3865 9H11.4724V17H9.3865V9ZM4.17178 19H20.8589V21H4.17178V19ZM5.21472 12H7.30061V17H5.21472V12Z" fill="#161A3E"/>
+                    </svg>
+                  '),
                   span("Current Progress")
                 ),
                 selectInput(
                   inputId = "progress_banner",
                   label = NULL,
                   choices = c("Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
-                  selected = "Character Event Wish",
-                  width = "220px"
+                  selected = "Character Event Wish"
                 )
               ),
               div(class = "pity-progress-box",
@@ -340,7 +360,9 @@ ui <- fluidPage(
                   )
                 ),
                 div(class = "pity-bar-container",
-                  div(class = "pity-bar"),
+                  div(class = "pity-bar-bg",
+                    div(class = "pity-bar-fill", style = "width: 0%", id = "pity-fill")
+                  ),
                   div(class = "pity-markers",
                     span(class = "marker", "0"),
                     span(class = "marker soft-pity", "Soft Pity (74)"),
@@ -352,7 +374,12 @@ ui <- fluidPage(
             # Pull Trends Card
             div(class = "stats-card pull-trends",
               div(class = "stats-card-header",
-                HTML('<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M5 3V19H21" stroke="#161A3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M19 5L13 11L9 7L5 11" stroke="#161A3E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'),
+                HTML('
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path d="M3 3V20C3 20.2652 3.10536 20.5196 3.29289 20.7071C3.48043 20.8946 3.73478 21 4 21H21V19H5V3H3Z" fill="#161A3E"/>
+                    <path d="M15.293 14.707C15.3858 14.7999 15.496 14.8737 15.6173 14.924C15.7386 14.9743 15.8687 15.0002 16 15.0002C16.1313 15.0002 16.2614 14.9743 16.3827 14.924C16.504 14.8737 16.6142 14.7999 16.707 14.707L21.707 9.70697L20.293 8.29297L16 12.586L13.707 10.293C13.6142 10.2 13.504 10.1263 13.3827 10.076C13.2614 10.0257 13.1313 9.99977 13 9.99977C12.8687 9.99977 12.7386 10.0257 12.6173 10.076C12.496 10.1263 12.3858 10.2 12.293 10.293L7.293 15.293L8.707 16.707L13 12.414L15.293 14.707Z" fill="#161A3E"/>
+                  </svg>
+                '),
                 span("Pull Trends")
               ),
               div(class = "trends-chart-area",
@@ -642,17 +669,17 @@ server <- function(input, output, session) {
     round(mean(five_stars$pity, na.rm = TRUE))
   })
 
-  # Current Pity (for selected banner)
+  # Current Pity (pulls left until hard pity for selected banner)
   output$current_pity <- renderText({
     df <- data()
     banner_filter <- input$progress_banner
     if (is.null(banner_filter)) return(0)
     banner_df <- df[df$banner == banner_filter, ]
     if (nrow(banner_df) == 0) return(0)
-    # Find pulls since last 5-star
-    last5_idx <- max(which(banner_df$rarity == "5-Star"), 0)
-    if (last5_idx == 0) return(nrow(banner_df))
-    nrow(banner_df) - last5_idx
+    # Get the pity value of the latest (most recent) entry for this banner
+    latest_pity <- banner_df$pity[1]
+    if (is.null(latest_pity) || is.na(latest_pity)) return(0)
+    latest_pity
   })
 
   # Pity pulls ago
@@ -662,9 +689,31 @@ server <- function(input, output, session) {
     if (is.null(banner_filter)) return(0)
     banner_df <- df[df$banner == banner_filter, ]
     if (nrow(banner_df) == 0) return(0)
-    last5_idx <- max(which(banner_df$rarity == "5-Star"), 0)
-    if (last5_idx == 0) return(nrow(banner_df))
-    nrow(banner_df) - last5_idx
+    # Use the pity value of the most recent entry for this banner
+    latest_pity <- banner_df$pity[1]
+    pulls_left <- 90 - latest_pity
+    pulls_left
+  })
+
+  # Update pity bar fill width
+  observe({
+    df <- data()
+    banner_filter <- input$progress_banner
+    if (is.null(banner_filter)) {
+      pity <- 0
+    } else {
+      banner_df <- df[df$banner == banner_filter, ]
+      if (nrow(banner_df) == 0) {
+        pity <- 0
+      } else {
+        # Use the pity value of the latest (most recent) entry for this banner
+        pity <- banner_df$pity[1]
+        if (is.null(pity) || is.na(pity)) pity <- 0
+      }
+    }
+    # Calculate percentage for progress bar (empty at 0, full at 90)
+    pct <- min(100, max(0, (pity / 90) * 100))
+    session$sendCustomMessage("updatePityBar", list(width = pct))
   })
 
   # Recent Pulls List (last 5 pulls with 4-star or 5-star)

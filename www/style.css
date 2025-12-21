@@ -150,6 +150,7 @@ body {
 
 .panel-wrapper {
   position: relative;
+  min-height: 530px;
 }
 
 #logger-panel, #analytics-panel {
@@ -170,13 +171,14 @@ body {
 #logger-panel.active, #analytics-panel.active {
   opacity: 1;
   pointer-events: auto;
+  height: 100%;
   z-index: 2;
 }
 
-/* Make sure .panel-wrapper is relative for absolute children */
-.panel-wrapper {
-  position: relative;
-  min-height: 516px; /* or whatever fits your content */
+.logger-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .input-card {
@@ -186,8 +188,6 @@ body {
   width: 100%;
 
   margin-inline: auto;
-  margin-bottom: 18px;
-
   border-radius: 5px;
   background: var(--dark-primary-color);
   box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
@@ -324,8 +324,8 @@ label {
 /* -------- SECOND SECTION -------------- */
 /* Styling of History Table */
 .table-card {
+  flex: 1;
   min-height: 290px;
-  height: 100%;
   background-color: var(--dark-primary-color);
   border-radius: var(--card-radius);
   padding: 16px;
@@ -497,7 +497,6 @@ table, th, td {
   display: flex;
   gap: 16px;
   width: 100%;
-  height: 100%;
 }
 
 .analytics-left {
@@ -519,7 +518,6 @@ table, th, td {
   background: var(--dark-primary-color);
   border-radius: var(--card-radius);
   padding: 16px;
-  overflow: hidden;
 }
 
 /* Overall Statistics Card Title */
@@ -590,11 +588,12 @@ table, th, td {
 }
 
 .progress-title {
+  width: 100%;
   font-family: "HeaderFont";
   font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   background: linear-gradient(90deg, #161A3E 0%, #3A45A4 86.5%);
   background-clip: text;
   -webkit-background-clip: text;
@@ -607,12 +606,15 @@ table, th, td {
 
 .progress-header .shiny-input-container {
   margin: 0;
+  display: flex;
+  justify-content: end;
 }
 
 .progress-header .selectize-input {
   background: var(--primary-color) !important;
   border-color: #b3a487 !important;
-  min-width: 200px;
+  min-width: 120px;
+  width: 236.748px;
 }
 
 .pity-progress-box {
@@ -666,6 +668,35 @@ table, th, td {
   border-radius: 64px;
   overflow: hidden;
   position: relative;
+}
+
+.pity-indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: white;
+  border-radius: 64px;
+  transition: width 0.3s ease;
+}
+
+.pity-bar-bg {
+  width: 100%;
+  height: 12px;
+  background: #E2D8C9;
+  border-radius: 64px;
+  overflow: hidden;
+  position: relative;
+}
+
+.pity-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #46825E 0%, #FA8700 80%, #993B37 100%);
+  border-radius: 64px;
+  transition: width 0.3s ease, background-size 0.3s ease;
+  background-size: 100% 100%;
+  background-position: left;
+  background-repeat: no-repeat;
 }
 
 .pity-markers {
