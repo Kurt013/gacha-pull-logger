@@ -72,6 +72,28 @@ recalculate_all_pity <- function(conn) {
 # -------------------------
 # UI
 # -------------------------
+
+# Loader UI component
+loaderUI <- function() {
+  div(class = "loader-overlay",
+    div(class = "loader-container",
+      div(class = "spinner", 
+        div(class = "loader-decoration",
+          HTML('
+            <svg xmlns="http://www.w3.org/2000/svg" width="177" height="131" viewBox="0 0 177 131" fill="none">
+              <path d="M88.4004 2.86328C88.5518 3.63841 88.7402 4.55663 88.9717 5.59375C89.729 8.98703 90.9369 13.659 92.7422 18.7734C96.3458 28.9826 102.356 41.0407 111.979 48.1631C121.578 55.2687 137.813 59.702 151.568 62.3623C158.461 63.6952 164.757 64.5873 169.33 65.1465C170.217 65.2549 171.039 65.3494 171.788 65.4336C171.039 65.5178 170.217 65.6132 169.33 65.7217C164.757 66.2809 158.461 67.1739 151.568 68.5068C137.813 71.1671 121.578 75.6004 111.979 82.7061C102.357 89.8285 96.3458 101.887 92.7422 112.096C90.937 117.21 89.729 121.881 88.9717 125.274C88.7403 126.311 88.5518 127.229 88.4004 128.004C88.249 127.229 88.0604 126.311 87.8291 125.274C87.0718 121.881 85.8637 117.21 84.0586 112.096C80.4549 101.886 74.4435 89.8285 64.8213 82.7061C55.2217 75.6004 38.9878 71.1671 25.2324 68.5068C18.3401 67.1739 12.0437 66.2809 7.4707 65.7217C6.58356 65.6132 5.76112 65.5178 5.01172 65.4336C5.76109 65.3494 6.5836 65.255 7.4707 65.1465C12.0437 64.5873 18.3402 63.6953 25.2324 62.3623C38.9876 59.7021 55.2217 55.2686 64.8213 48.1631C74.4435 41.0407 80.4549 28.9827 84.0586 18.7734C85.8639 13.6591 87.0718 8.98702 87.8291 5.59375C88.0606 4.55663 88.2489 3.63841 88.4004 2.86328Z" fill="#F5F1E6" stroke="currentColor"/>
+              <path d="M88.3008 16.2457C88.3008 16.2457 91.893 41.089 105.885 51.4565C119.877 61.824 153.406 64.4856 153.406 64.4856C153.406 64.4856 119.877 67.1473 105.885 77.5148C91.893 87.8823 88.3008 112.726 88.3008 112.726C88.3008 112.726 84.7085 87.8823 70.7163 77.5148C56.7241 67.1473 23.1951 64.4856 23.1951 64.4856C23.1951 64.4856 56.7241 61.824 70.7163 51.4565C84.7085 41.089 88.3008 16.2457 88.3008 16.2457Z" fill="currentColor"/>
+            </svg>
+          ')
+        ),
+        div(class = "loader l1"),
+        div(class = "loader l2")
+      ),
+      div(class = "loader-text", "Loading...")
+    )
+  )
+}
+
 ui <- fluidPage(
   shinytoastr::useToastr(),
 
@@ -96,25 +118,7 @@ ui <- fluidPage(
         }
       });
     ")),
-    tags$script(HTML("
-      $(function() {
-        $(document).on('click', '.nav-tab', function() {
-          // Remove active class from all tabs
-          $('.nav-tab').removeClass('nav-tab-active');
-          // Add active class to the clicked tab
-          $(this).addClass('nav-tab-active');
-          // Panel switching
-          var tab = $(this).data('value');
-          if(tab === 'logger') {
-            $('#logger-panel').removeClass('inactive').addClass('active');
-            $('#analytics-panel').removeClass('active').addClass('inactive');
-          } else {
-            $('#logger-panel').removeClass('active').addClass('inactive');
-            $('#analytics-panel').removeClass('inactive').addClass('active');
-          }
-        });
-      });
-    ")),
+
     tags$script(HTML("
       // Toggle password visibility
       $(document).on('click', '.password-toggle', function() {
@@ -128,12 +132,73 @@ ui <- fluidPage(
           icon.removeClass('visible');
         }
       });
+    ")),
+    tags$script(HTML("
+      // Session persistence using localStorage
+      $(document).on('shiny:connected', function() {
+        var isLoggedIn = localStorage.getItem('gacha_logged_in');
+        if (isLoggedIn === 'true') {
+          setTimeout(function() {
+            Shiny.setInputValue('restore_session', Date.now(), {priority: 'event'});
+          }, 100);
+        }
+        // Trigger auth check after 500ms delay (only once)
+        setTimeout(function() {
+          Shiny.setInputValue('auth_ready', Date.now(), {priority: 'event'});
+        }, 500);
+      });
+      
+      // Handler to save login state
+      Shiny.addCustomMessageHandler('saveLoginState', function(message) {
+        if (message.logged_in) {
+          localStorage.setItem('gacha_logged_in', 'true');
+        } else {
+          localStorage.removeItem('gacha_logged_in');
+        }
+      });
+      
+      // Loader slide-up animation handler (manual trigger)
+      Shiny.addCustomMessageHandler('hideLoader', function(message) {
+        var loader = $('.loader-overlay');
+        if (loader.length && !loader.hasClass('slide-up')) {
+          loader.addClass('slide-up');
+          // Hide completely after animation finishes
+          setTimeout(function() {
+            loader.addClass('hidden');
+          }, 500);
+        }
+      });
+      
+      // Wait for authChecked output to be set, then wait for panel to render
+      $(document).on('shiny:value', function(event) {
+        // Only react to authChecked output
+        if (event.name === 'authChecked' && event.value === true) {
+          // Give panels time to render after authChecked becomes true
+          setTimeout(function() {
+            var loginVisible = $('.login-page').is(':visible');
+            var mainVisible = $('.container').is(':visible');
+            
+            if (loginVisible || mainVisible) {
+              var loader = $('.loader-overlay');
+              if (loader.length && !loader.hasClass('slide-up')) {
+                loader.addClass('slide-up');
+                setTimeout(function() {
+                  loader.addClass('hidden');
+                }, 500);
+              }
+            }
+          }, 100); // Small delay for panel rendering
+        }
+      });
     "))
   ),
   
-  # Login Panel (shown when not logged in)
+  # Loader Panel (always rendered, controlled via JS)
+  loaderUI(),
+  
+  # Login Panel (shown when not logged in and auth is checked)
   conditionalPanel(
-    condition = "!output.logged_in",
+    condition = "output.authChecked && !output.logged_in",
     div(class = "login-page",
       div(class = "blur-overlay"),
       div(class = "login-panel",
@@ -207,285 +272,295 @@ ui <- fluidPage(
     )
   ),
   
-  # Main App (shown when logged in)
+  # Main App (shown when logged in and auth is checked)
   conditionalPanel(
-    condition = "output.logged_in",
+    condition = "output.authChecked && output.logged_in",
     div(class ="container",   
-      # Title
-      div(class = "header-title",
-          "Gacha Pull", br(),
-          span(class = "subtitle", 
-                "Logger"
-          )
-          
+      # Header with title and logout
+      div(class = "header-row",
+        div(class = "header-title",
+            "Gacha Pull", br(),
+            span(class = "subtitle", 
+                  "Logger"
+            )
+        )
       ),
 
       # Input Fields Card
 
       div(class = "panel-wrapper",
-        # Navigation Tabs
-        div(class = "nav-tabs",
-          div(
-            class = "nav-tab nav-tab-active",
-            `data-value` = "logger",
-            onclick = "Shiny.setInputValue('tab', 'logger', {priority: 'event'})",
-            "Logger"
-          ),
-          div(
-            class = "nav-tab",
-            `data-value` = "analytics",
-            onclick = "Shiny.setInputValue('tab', 'analytics', {priority: 'event'})",
-            "Analytics"
+        div(class="logout-container", 
+          actionButton(
+            "logout_btn",
+            label = tagList(
+              HTML('
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <path d="M16 13V11H7V8L2 12L7 16V13H16Z" fill="white"/>
+                  <path d="M20 3H11C9.897 3 9 3.897 9 5V9H11V5H20V19H11V15H9V19C9 20.103 9.897 21 11 21H20C21.103 21 22 20.103 22 19V5C22 3.897 21.103 3 20 3Z" fill="white"/>
+                </svg>
+              '),
+              "Logout"
+            ),
+            class = "btn-logout"
           )
         ),
-
-        div(id = "logger-panel", class="logger-content active",
-          div(class= "input-card",
-            div(class = "col col-1",
-              selectInput(
-                inputId = "type",
-                label   = "Type",
-                choices = c("Weapon", "Character"),
-                selected = "Weapon"
-              ),
-              textInput(
-                inputId = "name",
-                label   = "Name"
-              )
-            ),
-
-            div(class = "col col-2",
-              selectInput(
-                inputId = "rarity",
-                label   = "Rarity",
-                choices = c("3-Star", "4-Star", "5-Star"),
-                selected = "3-Star"
-              )
-            ),
-            
-            div(class = "col col-3",
-              selectInput(
-                inputId = "banner",
-                label   = "Banner",
-                choices = c("Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
-                selected = "Character Event Wish"
-              ),
-              div(class = "date-container",
-                HTML('
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10.6667 1.33333V3.99999M5.33333 1.33333V3.99999M2 6.66666H14M3.33333 2.66666H12.6667C13.403 2.66666 14 3.26362 14 3.99999V13.3333C14 14.0697 13.403 14.6667 12.6667 14.6667H3.33333C2.59695 14.6667 2 14.0697 2 13.3333V3.99999C2 3.26362 2.59695 2.66666 3.33333 2.66666Z" stroke="#1E1E1E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-                '),
-                dateInput(
-                  inputId = "date",
-                  label = "Pull Date",
-                  value = Sys.Date(),
-                  format = "yyyy-mm-dd"
-                )
-              )
-            ),
-
-            div(class = "col col-4", 
-              div(
-                class = "btn-row",
-                actionButton(
-                  "add",
-                  label = tagList(
-                    HTML('
-                      <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
-                        <path d="M20 8.33334V31.6667M8.33334 20H31.6667" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                    '),
-                    "Add"
+        tabsetPanel(
+          id = "main_tabs",
+          type = "tabs",
+          
+          tabPanel(
+            title = "Logger",
+            value = "logger",
+            div(class = "logger-content",
+              div(class= "input-card",
+                div(class = "col col-1",
+                  selectInput(
+                    inputId = "type",
+                    label   = "Type",
+                    choices = c("Weapon", "Character"),
+                    selected = "Weapon"
                   ),
-                  class = "btn-custom btn-add"
+                  textInput(
+                    inputId = "name",
+                    label   = "Name"
+                  )
+                ),
+
+                div(class = "col col-2",
+                  selectInput(
+                    inputId = "rarity",
+                    label   = "Rarity",
+                    choices = c("3-Star", "4-Star", "5-Star"),
+                    selected = "3-Star"
+                  )
                 ),
                 
-                actionButton(
-                  "update",
-                  label = tagList(
-                    HTML('
-                      <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
-                        <g clip-path="url(#clip0_17_58)">
-                          <path d="M26.8333 4.66667V11.6667M26.8333 11.6667H19.8333M26.8333 11.6667L21.42 6.58C20.1661 5.3255 18.6149 4.40908 16.911 3.91624C15.2072 3.4234 13.4063 3.37021 11.6763 3.76164C9.94637 4.15306 8.34376 4.97634 7.01803 6.15466C5.69231 7.33297 4.68669 8.82792 4.09499 10.5M1.16666 23.3333V16.3333M1.16666 16.3333H8.16666M1.16666 16.3333L6.57999 21.42C7.83386 22.6745 9.38509 23.5909 11.0889 24.0838C12.7928 24.5766 14.5937 24.6298 16.3237 24.2384C18.0536 23.8469 19.6562 23.0237 20.9819 21.8453C22.3077 20.667 23.3133 19.1721 23.905 17.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                        </g>
-                        <defs>
-                          <clipPath id="clip0_17_58">
-                            <rect width="28" height="28" fill="currentColor"/>
-                          </clipPath>
-                        </defs>
-                      </svg>
-                    '),
-                    "Update"
+                div(class = "col col-3",
+                  selectInput(
+                    inputId = "banner",
+                    label   = "Banner",
+                    choices = c("Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
+                    selected = "Character Event Wish"
                   ),
-                  class = "btn-custom btn-update"
+                  div(class = "date-container",
+                    HTML('
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path d="M10.6667 1.33333V3.99999M5.33333 1.33333V3.99999M2 6.66666H14M3.33333 2.66666H12.6667C13.403 2.66666 14 3.26362 14 3.99999V13.3333C14 14.0697 13.403 14.6667 12.6667 14.6667H3.33333C2.59695 14.6667 2 14.0697 2 13.3333V3.99999C2 3.26362 2.59695 2.66666 3.33333 2.66666Z" stroke="#1E1E1E" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    '),
+                    dateInput(
+                      inputId = "date",
+                      label = "Pull Date",
+                      value = Sys.Date(),
+                      format = "yyyy-mm-dd"
+                    )
+                  )
                 ),
-                
-                actionButton(
-                  "delete",
-                  label = tagList(
-                    HTML('
-                      <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
-                        <path d="M7.29167 29.1667C7.29167 29.9402 7.59896 30.6821 8.14594 31.2291C8.69292 31.776 9.43479 32.0833 10.2083 32.0833H24.7917C25.5652 32.0833 26.3071 31.776 26.8541 31.2291C27.401 30.6821 27.7083 29.9402 27.7083 29.1667V11.6667H30.625V8.75H24.7917V5.83334C24.7917 5.05979 24.4844 4.31792 23.9374 3.77094C23.3904 3.22396 22.6485 2.91667 21.875 2.91667H13.125C12.3515 2.91667 11.6096 3.22396 11.0626 3.77094C10.5156 4.31792 10.2083 5.05979 10.2083 5.83334V8.75H4.375V11.6667H7.29167V29.1667ZM13.125 5.83334H21.875V8.75H13.125V5.83334ZM11.6667 11.6667H24.7917V29.1667H10.2083V11.6667H11.6667Z" fill="currentColor"/>
-                        <path d="M13.125 14.5833H16.0417V26.25H13.125V14.5833ZM18.9583 14.5833H21.875V26.25H18.9583V14.5833Z" fill="currentColor"/>
-                      </svg>
-                    '),
-                    "Delete"
-                  ),
-                  class = "btn-custom btn-delete"
-                ),
-                
-                actionButton(
-                  "clear",
-                  label = tagList(
-                    HTML('
-                      <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
-                        <path d="M18.8681 2.9339L11.3769 10.4965L3.91722 18.2024C3.32975 18.799 3 19.606 3 20.4473C3 21.2885 3.32975 22.0955 3.91722 22.6922L10.6988 29.5383C10.9925 29.8324 11.389 29.9982 11.8027 30H30.7279V26.8158H19.6882L31.0749 15.3206C31.3682 15.0249 31.6008 14.6737 31.7596 14.2871C31.9183 13.9006 32 13.4862 32 13.0678C32 12.6493 31.9183 12.235 31.7596 11.8484C31.6008 11.4618 31.3682 11.1106 31.0749 10.8149L23.3313 2.9339C23.0384 2.63784 22.6905 2.40297 22.3076 2.24273C21.9247 2.08248 21.5143 2 21.0997 2C20.6852 2 20.2748 2.08248 19.8919 2.24273C19.509 2.40297 19.1611 2.63784 18.8681 2.9339ZM12.4493 26.8158L6.14093 20.4473L13.6322 12.7414L14.7992 11.5473L22.6059 19.4283L15.4143 26.6884L15.3039 26.8158H12.4493Z" fill="currentColor"/>
-                      </svg>
-                    '),
-                    "Clear"
-                  ),
-                  class = "btn-custom btn-clear"
-                )
-              )
-            )
-          ),
 
-          # Table Card
-          div(class = "table-card",
-              div(class = "table-card-header",
-                  div(class = "left-side", 
-                      tagList(
+                div(class = "col col-4", 
+                  div(
+                    class = "btn-row",
+                    actionButton(
+                      "add",
+                      label = tagList(
                         HTML('
-                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                            <path d="M21 8C20.798 8 16.15 8.029 12 10.008C7.85 8.029 3.202 8 3 8C2.73478 8 2.48043 8.10536 2.29289 8.29289C2.10536 8.48043 2 8.73478 2 9V18.883C2 19.0172 2.02701 19.15 2.0794 19.2735C2.1318 19.397 2.20852 19.5087 2.305 19.602C2.5 19.79 2.785 19.907 3.034 19.882L3.161 19.881C3.844 19.881 7.457 19.979 11.577 21.906C11.593 21.914 11.611 21.911 11.627 21.917C11.746 21.966 11.871 22 12 22C12.129 22 12.254 21.966 12.374 21.917C12.39 21.911 12.408 21.914 12.424 21.906C16.544 19.978 20.157 19.881 20.84 19.881L20.967 19.882C21.205 19.907 21.5 19.79 21.696 19.602C21.89 19.413 22 19.153 22 18.883V9C22 8.73478 21.8946 8.48043 21.7071 8.29289C21.5196 8.10536 21.2652 8 21 8ZM4 10.049C5.485 10.16 8.381 10.529 11 11.741V19.483C8 18.308 5.41 17.989 4 17.907V10.049ZM20 17.907C18.59 17.989 16 18.308 13 19.483V11.741C15.619 10.529 18.515 10.16 20 10.049V17.907Z" fill="#222648"/>
-                            <path d="M12 8C13.6569 8 15 6.65685 15 5C15 3.34315 13.6569 2 12 2C10.3431 2 9 3.34315 9 5C9 6.65685 10.3431 8 12 8Z" fill="#222648"/>
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40" fill="none">
+                            <path d="M20 8.33334V31.6667M8.33334 20H31.6667" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
                           </svg>
                         '),
-                        div("Pull Records "),
-                        span(class = "subheader", "(Click a row to select)")
-                      )         
-                  ),
-                  div(class = "right-side inline-field",
-                      selectInput(
-                        inputId = "filter",
-                        label   = "Filter By: ",
-                        choices = c("All (Banner)", "Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
-                        selected = "All (Banner)"
-                      )
+                        "Add"
+                      ),
+                      class = "btn-custom btn-add"
+                    ),
+                    
+                    actionButton(
+                      "update",
+                      label = tagList(
+                        HTML('
+                          <svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28" fill="none">
+                            <g clip-path="url(#clip0_17_58)">
+                              <path d="M26.8333 4.66667V11.6667M26.8333 11.6667H19.8333M26.8333 11.6667L21.42 6.58C20.1661 5.3255 18.6149 4.40908 16.911 3.91624C15.2072 3.4234 13.4063 3.37021 11.6763 3.76164C9.94637 4.15306 8.34376 4.97634 7.01803 6.15466C5.69231 7.33297 4.68669 8.82792 4.09499 10.5M1.16666 23.3333V16.3333M1.16666 16.3333H8.16666M1.16666 16.3333L6.57999 21.42C7.83386 22.6745 9.38509 23.5909 11.0889 24.0838C12.7928 24.5766 14.5937 24.6298 16.3237 24.2384C18.0536 23.8469 19.6562 23.0237 20.9819 21.8453C22.3077 20.667 23.3133 19.1721 23.905 17.5" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            </g>
+                            <defs>
+                              <clipPath id="clip0_17_58">
+                                <rect width="28" height="28" fill="currentColor"/>
+                              </clipPath>
+                            </defs>
+                          </svg>
+                        '),
+                        "Update"
+                      ),
+                      class = "btn-custom btn-update"
+                    ),
+                    
+                    actionButton(
+                      "delete",
+                      label = tagList(
+                        HTML('
+                          <svg xmlns="http://www.w3.org/2000/svg" width="35" height="35" viewBox="0 0 35 35" fill="none">
+                            <path d="M7.29167 29.1667C7.29167 29.9402 7.59896 30.6821 8.14594 31.2291C8.69292 31.776 9.43479 32.0833 10.2083 32.0833H24.7917C25.5652 32.0833 26.3071 31.776 26.8541 31.2291C27.401 30.6821 27.7083 29.9402 27.7083 29.1667V11.6667H30.625V8.75H24.7917V5.83334C24.7917 5.05979 24.4844 4.31792 23.9374 3.77094C23.3904 3.22396 22.6485 2.91667 21.875 2.91667H13.125C12.3515 2.91667 11.6096 3.22396 11.0626 3.77094C10.5156 4.31792 10.2083 5.05979 10.2083 5.83334V8.75H4.375V11.6667H7.29167V29.1667ZM13.125 5.83334H21.875V8.75H13.125V5.83334ZM11.6667 11.6667H24.7917V29.1667H10.2083V11.6667H11.6667Z" fill="currentColor"/>
+                            <path d="M13.125 14.5833H16.0417V26.25H13.125V14.5833ZM18.9583 14.5833H21.875V26.25H18.9583V14.5833Z" fill="currentColor"/>
+                          </svg>
+                        '),
+                        "Delete"
+                      ),
+                      class = "btn-custom btn-delete"
+                    ),
+                    
+                    actionButton(
+                      "clear",
+                      label = tagList(
+                        HTML('
+                          <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36" fill="none">
+                            <path d="M18.8681 2.9339L11.3769 10.4965L3.91722 18.2024C3.32975 18.799 3 19.606 3 20.4473C3 21.2885 3.32975 22.0955 3.91722 22.6922L10.6988 29.5383C10.9925 29.8324 11.389 29.9982 11.8027 30H30.7279V26.8158H19.6882L31.0749 15.3206C31.3682 15.0249 31.6008 14.6737 31.7596 14.2871C31.9183 13.9006 32 13.4862 32 13.0678C32 12.6493 31.9183 12.235 31.7596 11.8484C31.6008 11.4618 31.3682 11.1106 31.0749 10.8149L23.3313 2.9339C23.0384 2.63784 22.6905 2.40297 22.3076 2.24273C21.9247 2.08248 21.5143 2 21.0997 2C20.6852 2 20.2748 2.08248 19.8919 2.24273C19.509 2.40297 19.1611 2.63784 18.8681 2.9339ZM12.4493 26.8158L6.14093 20.4473L13.6322 12.7414L14.7992 11.5473L22.6059 19.4283L15.4143 26.6884L15.3039 26.8158H12.4493Z" fill="currentColor"/>
+                          </svg>
+                        '),
+                        "Clear"
+                      ),
+                      class = "btn-custom btn-clear"
+                    )
                   )
-              ),
-              DTOutput("table")
-          )
-        ),
-        
-        # Analytics Panel (hidden by default)
-        div(
-          id = "analytics-panel",
-          class = "analytics-content inactive",
-          # Left column
-          div(class = "analytics-left",
-            # Overall Statistics Card
-            div(class = "stats-card overall-stats",
-              div(class = "stats-card-title", "Overall Statistics"),
-              div(class = "stats-list",
-                div(class = "stat-row",
-                  span(class = "stat-label", "Total Pulls:"),
-                  span(class = "stat-value", textOutput("total_pulls", inline = TRUE))
-                ),
-                div(class = "stat-row",
-                  span(class = "stat-label", "Primogems Spent:"),
-                  span(class = "stat-value", textOutput("primogems_spent", inline = TRUE))
-                ),
-                div(class = "stat-row",
-                  span(class = "stat-label", "Luck Index:"),
-                  span(class = "stat-value", textOutput("luck_index", inline = TRUE))
-                ),
-                div(class = "stat-row",
-                  span(class = "stat-label", "Average Pity:"),
-                  span(class = "stat-value", textOutput("avg_pity", inline = TRUE))
                 )
-              )
-            ),
-            # Recent Pulls Card
-            div(class = "stats-card recent-pulls-card",
-              div(class = "stats-card-header",
-                HTML('
-                  <svg xmlns="http://www.w3.org/2000/svg" width="19" height="15" viewBox="0 0 19 15" fill="none">
-                    <path d="M6.54015 0.460536C6.48 0.410343 6.40729 0.378667 6.33103 0.369418C6.25476 0.36017 6.17826 0.373753 6.11098 0.408493L4.14356 1.42583L2.16795 0.0712252C2.10461 0.0274134 2.03078 0.00275185 1.95536 0.00021715C1.87995 -0.00231755 1.80617 0.0173828 1.74294 0.0569407C1.6797 0.0964986 1.62972 0.154223 1.59901 0.223148C1.5683 0.292073 1.55818 0.369252 1.56988 0.445371L1.92668 2.81443L0.152716 4.14061C0.0931037 4.18516 0.0479715 4.24667 0.0227189 4.31779C-0.00253367 4.38892 -0.00683747 4.46664 0.0103225 4.54167C0.0274824 4.61669 0.0653795 4.68584 0.11948 4.74084C0.17358 4.79584 0.241593 4.83437 0.315381 4.8518L2.57479 5.38596L3.46358 7.8917C3.49043 7.96757 3.53884 8.03427 3.6025 8.08313C3.66617 8.13199 3.74216 8.16076 3.82061 8.1657C3.89906 8.17065 3.97636 8.15154 4.04246 8.11086C4.10857 8.07017 4.16043 8.0098 4.19133 7.93756L5.2029 5.58095L7.76471 5.69927C7.84476 5.70282 7.9231 5.68138 7.98922 5.63783C8.05534 5.59429 8.10605 5.53074 8.13455 5.45572C8.16304 5.3807 8.16794 5.29781 8.14859 5.2182C8.12925 5.1386 8.08658 5.06609 8.02633 5.01044L6.05956 3.2046L6.67634 0.880734C6.71657 0.728329 6.66308 0.563429 6.54015 0.460536Z" fill="#171B41"/>
-                    <path d="M18.6387 9.18034C18.6539 9.0839 18.6412 8.9859 18.6023 8.89844C18.5634 8.81097 18.5 8.73787 18.4198 8.68815L16.0734 7.23527L16.258 4.2563C16.2643 4.16054 16.2435 4.06582 16.1979 3.98356C16.1524 3.9013 16.0841 3.83502 16.0014 3.79271C15.9186 3.7504 15.8249 3.73388 15.7316 3.74514C15.6383 3.75639 15.5493 3.79495 15.4753 3.85615L13.1705 5.75317L10.6176 4.70473C10.5319 4.66948 10.4372 4.66057 10.345 4.67907C10.2528 4.69757 10.1669 4.74269 10.0977 4.80903C10.0285 4.87537 9.97877 4.96013 9.95457 5.05316C9.93036 5.14619 9.93268 5.24356 9.96124 5.33361L10.8355 8.0912L8.72475 10.6445C8.6608 10.7217 8.62045 10.8162 8.60894 10.9155C8.59742 11.0148 8.61527 11.1145 8.66017 11.2015C8.70507 11.2886 8.77495 11.359 8.86074 11.4037C8.94653 11.4483 9.04426 11.4652 9.14126 11.452L12.3082 11.0261L13.8205 13.841C13.8679 13.9288 13.941 13.9989 14.0298 14.0417C14.1187 14.0846 14.2191 14.0981 14.3175 14.0806C14.4159 14.0631 14.5077 14.0153 14.5805 13.9437C14.6532 13.8721 14.7034 13.7801 14.7244 13.6801L15.3971 10.4219L18.2765 9.59476C18.4652 9.54028 18.6073 9.3776 18.6387 9.18034Z" fill="#171B41"/>
-                  </svg>
-                '),
-                span("Recent Pulls")
               ),
-              uiOutput("recent_pulls_list")
+
+              # Table Card
+              div(class = "table-card",
+                  div(class = "table-card-header",
+                      div(class = "left-side", 
+                          tagList(
+                            HTML('
+                              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                                <path d="M21 8C20.798 8 16.15 8.029 12 10.008C7.85 8.029 3.202 8 3 8C2.73478 8 2.48043 8.10536 2.29289 8.29289C2.10536 8.48043 2 8.73478 2 9V18.883C2 19.0172 2.02701 19.15 2.0794 19.2735C2.1318 19.397 2.20852 19.5087 2.305 19.602C2.5 19.79 2.785 19.907 3.034 19.882L3.161 19.881C3.844 19.881 7.457 19.979 11.577 21.906C11.593 21.914 11.611 21.911 11.627 21.917C11.746 21.966 11.871 22 12 22C12.129 22 12.254 21.966 12.374 21.917C12.39 21.911 12.408 21.914 12.424 21.906C16.544 19.978 20.157 19.881 20.84 19.881L20.967 19.882C21.205 19.907 21.5 19.79 21.696 19.602C21.89 19.413 22 19.153 22 18.883V9C22 8.73478 21.8946 8.48043 21.7071 8.29289C21.5196 8.10536 21.2652 8 21 8ZM4 10.049C5.485 10.16 8.381 10.529 11 11.741V19.483C8 18.308 5.41 17.989 4 17.907V10.049ZM20 17.907C18.59 17.989 16 18.308 13 19.483V11.741C15.619 10.529 18.515 10.16 20 10.049V17.907Z" fill="#222648"/>
+                                <path d="M12 8C13.6569 8 15 6.65685 15 5C15 3.34315 13.6569 2 12 2C10.3431 2 9 3.34315 9 5C9 6.65685 10.3431 8 12 8Z" fill="#222648"/>
+                              </svg>
+                            '),
+                            div("Pull Records "),
+                            span(class = "subheader", "(Click a row to select)")
+                          )         
+                      ),
+                      div(class = "right-side inline-field",
+                          selectInput(
+                            inputId = "filter",
+                            label   = "Filter By: ",
+                            choices = c("All (Banner)", "Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
+                            selected = "All (Banner)"
+                          )
+                      )
+                  ),
+                  DTOutput("table")
+              )
             )
           ),
-          # Right column
-          div(class = "analytics-right",
-            # Current Progress Card
-            div(class = "stats-card current-progress",
-              div(class = "progress-header",
-                div(class = "progress-title",
-                  HTML('
-                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="24" viewBox="0 0 26 24" fill="none">
-                      <path d="M13.5583 6H15.6442V17H13.5583V6ZM17.7301 3H19.816V17H17.7301V3ZM9.3865 9H11.4724V17H9.3865V9ZM4.17178 19H20.8589V21H4.17178V19ZM5.21472 12H7.30061V17H5.21472V12Z" fill="#161A3E"/>
-                    </svg>
-                  '),
-                  span("Current Progress")
-                ),
-                selectInput(
-                  inputId = "progress_banner",
-                  label = NULL,
-                  choices = c("Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
-                  selected = "Character Event Wish"
-                )
-              ),
-              div(class = "pity-progress-box",
-                div(class = "pity-info",
-                  div(class = "pity-label",
-                    span("5-star in "),
-                    span(class = "pity-highlight", textOutput("pity_pulls_ago", inline = TRUE)),
-                    span(" pulls")
-                  ),
-                  div(class = "pity-counter",
-                    span(class = "pity-current", textOutput("current_pity", inline = TRUE)),
-                    span(class = "pity-max", " / 90")
+        
+          tabPanel(
+            title = "Analytics",
+            value = "analytics",
+            div(class = "analytics-content",
+              # Left column
+              div(class = "analytics-left",
+                # Overall Statistics Card
+                div(class = "stats-card overall-stats",
+                  div(class = "stats-card-title", "Overall Statistics"),
+                  div(class = "stats-list",
+                    div(class = "stat-row",
+                      span(class = "stat-label", "Total Pulls:"),
+                      span(class = "stat-value", textOutput("total_pulls", inline = TRUE))
+                    ),
+                    div(class = "stat-row",
+                      span(class = "stat-label", "Primogems Spent:"),
+                      span(class = "stat-value", textOutput("primogems_spent", inline = TRUE))
+                    ),
+                    div(class = "stat-row",
+                      span(class = "stat-label", "Luck Index:"),
+                      span(class = "stat-value", textOutput("luck_index", inline = TRUE))
+                    ),
+                    div(class = "stat-row",
+                      span(class = "stat-label", "Average Pity:"),
+                      span(class = "stat-value", textOutput("avg_pity", inline = TRUE))
+                    )
                   )
                 ),
-                div(class = "pity-bar-container",
-                  div(class = "pity-bar-bg",
-                    div(class = "pity-bar-fill", style = "width: 0%", id = "pity-fill"),
-                    # Soft pity indicator SVG at 74
-                    span(class = "soft-pity-indicator",
+                # Recent Pulls Card
+                div(class = "stats-card recent-pulls-card",
+                  div(class = "stats-card-header",
+                    HTML('
+                      <svg xmlns="http://www.w3.org/2000/svg" width="19" height="15" viewBox="0 0 19 15" fill="none">
+                        <path d="M6.54015 0.460536C6.48 0.410343 6.40729 0.378667 6.33103 0.369418C6.25476 0.36017 6.17826 0.373753 6.11098 0.408493L4.14356 1.42583L2.16795 0.0712252C2.10461 0.0274134 2.03078 0.00275185 1.95536 0.00021715C1.87995 -0.00231755 1.80617 0.0173828 1.74294 0.0569407C1.6797 0.0964986 1.62972 0.154223 1.59901 0.223148C1.5683 0.292073 1.55818 0.369252 1.56988 0.445371L1.92668 2.81443L0.152716 4.14061C0.0931037 4.18516 0.0479715 4.24667 0.0227189 4.31779C-0.00253367 4.38892 -0.00683747 4.46664 0.0103225 4.54167C0.0274824 4.61669 0.0653795 4.68584 0.11948 4.74084C0.17358 4.79584 0.241593 4.83437 0.315381 4.8518L2.57479 5.38596L3.46358 7.8917C3.49043 7.96757 3.53884 8.03427 3.6025 8.08313C3.66617 8.13199 3.74216 8.16076 3.82061 8.1657C3.89906 8.17065 3.97636 8.15154 4.04246 8.11086C4.10857 8.07017 4.16043 8.0098 4.19133 7.93756L5.2029 5.58095L7.76471 5.69927C7.84476 5.70282 7.9231 5.68138 7.98922 5.63783C8.05534 5.59429 8.10605 5.53074 8.13455 5.45572C8.16304 5.3807 8.16794 5.29781 8.14859 5.2182C8.12925 5.1386 8.08658 5.06609 8.02633 5.01044L6.05956 3.2046L6.67634 0.880734C6.71657 0.728329 6.66308 0.563429 6.54015 0.460536Z" fill="#171B41"/>
+                        <path d="M18.6387 9.18034C18.6539 9.0839 18.6412 8.9859 18.6023 8.89844C18.5634 8.81097 18.5 8.73787 18.4198 8.68815L16.0734 7.23527L16.258 4.2563C16.2643 4.16054 16.2435 4.06582 16.1979 3.98356C16.1524 3.9013 16.0841 3.83502 16.0014 3.79271C15.9186 3.7504 15.8249 3.73388 15.7316 3.74514C15.6383 3.75639 15.5493 3.79495 15.4753 3.85615L13.1705 5.75317L10.6176 4.70473C10.5319 4.66948 10.4372 4.66057 10.345 4.67907C10.2528 4.69757 10.1669 4.74269 10.0977 4.80903C10.0285 4.87537 9.97877 4.96013 9.95457 5.05316C9.93036 5.14619 9.93268 5.24356 9.96124 5.33361L10.8355 8.0912L8.72475 10.6445C8.6608 10.7217 8.62045 10.8162 8.60894 10.9155C8.59742 11.0148 8.61527 11.1145 8.66017 11.2015C8.70507 11.2886 8.77495 11.359 8.86074 11.4037C8.94653 11.4483 9.04426 11.4652 9.14126 11.452L12.3082 11.0261L13.8205 13.841C13.8679 13.9288 13.941 13.9989 14.0298 14.0417C14.1187 14.0846 14.2191 14.0981 14.3175 14.0806C14.4159 14.0631 14.5077 14.0153 14.5805 13.9437C14.6532 13.8721 14.7034 13.7801 14.7244 13.6801L15.3971 10.4219L18.2765 9.59476C18.4652 9.54028 18.6073 9.3776 18.6387 9.18034Z" fill="#171B41"/>
+                      </svg>
+                    '),
+                    span("Recent Pulls")
+                  ),
+                  uiOutput("recent_pulls_list")
+                )
+              ),
+              # Right column
+              div(class = "analytics-right",
+                # Current Progress Card
+                div(class = "stats-card current-progress",
+                  div(class = "progress-header",
+                    div(class = "progress-title",
                       HTML('
-                        <svg xmlns="http://www.w3.org/2000/svg" width="4" height="9" viewBox="0 0 1 9" fill="none">
-                          <path d="M0.25 0L0.25 9" stroke="#161A3E" stroke-width="0.5"/>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="26" height="24" viewBox="0 0 26 24" fill="none">
+                          <path d="M13.5583 6H15.6442V17H13.5583V6ZM17.7301 3H19.816V17H17.7301V3ZM9.3865 9H11.4724V17H9.3865V9ZM4.17178 19H20.8589V21H4.17178V19ZM5.21472 12H7.30061V17H5.21472V12Z" fill="#161A3E"/>
                         </svg>
-                      ')
+                      '),
+                      span("Current Progress")
+                    ),
+                    selectInput(
+                      inputId = "progress_banner",
+                      label = NULL,
+                      choices = c("Character Event Wish", "Weapon Event Wish", "Standard Event Wish"),
+                      selected = "Character Event Wish"
                     )
                   ),
-                  div(class = "pity-markers",
-                    span(class = "marker", "0"),
-                    span(class = "marker soft-pity", "Soft Pity (74)"),
-                    span(class = "marker hard-pity", "Hard Pity (90)")
+                  div(class = "pity-progress-box",
+                    div(class = "pity-info",
+                      div(class = "pity-label",
+                        span("5-star in "),
+                        span(class = "pity-highlight", textOutput("pity_pulls_ago", inline = TRUE)),
+                        span(" pulls")
+                      ),
+                      div(class = "pity-counter",
+                        span(class = "pity-current", textOutput("current_pity", inline = TRUE)),
+                        span(class = "pity-max", " / 90")
+                      )
+                    ),
+                    div(class = "pity-bar-container",
+                      div(class = "pity-bar-bg",
+                        div(class = "pity-bar-fill", style = "width: 0%", id = "pity-fill"),
+                        # Soft pity indicator SVG at 74
+                        span(class = "soft-pity-indicator",
+                          HTML('
+                            <svg xmlns="http://www.w3.org/2000/svg" width="4" height="9" viewBox="0 0 1 9" fill="none">
+                              <path d="M0.25 0L0.25 9" stroke="#161A3E" stroke-width="0.5"/>
+                            </svg>
+                          ')
+                        )
+                      ),
+                      div(class = "pity-markers",
+                        span(class = "marker", "0"),
+                        span(class = "marker soft-pity", "Soft Pity (74)"),
+                        span(class = "marker hard-pity", "Hard Pity (90)")
+                      )
+                    )
+                  )
+                ),
+                # Pull Trends Card
+                div(class = "stats-card pull-trends",
+                  div(class = "stats-card-header",
+                    HTML('
+                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M3 3V20C3 20.2652 3.10536 20.5196 3.29289 20.7071C3.48043 20.8946 3.73478 21 4 21H21V19H5V3H3Z" fill="#161A3E"/>
+                        <path d="M15.293 14.707C15.3858 14.7999 15.496 14.8737 15.6173 14.924C15.7386 14.9743 15.8687 15.0002 16 15.0002C16.1313 15.0002 16.2614 14.9743 16.3827 14.924C16.504 14.8737 16.6142 14.7999 16.707 14.707L21.707 9.70697L20.293 8.29297L16 12.586L13.707 10.293C13.6142 10.2 13.504 10.1263 13.3827 10.076C13.2614 10.0257 13.1313 9.99977 13 9.99977C12.8687 9.99977 12.7386 10.0257 12.6173 10.076C12.496 10.1263 12.3858 10.2 12.293 10.293L7.293 15.293L8.707 16.707L13 12.414L15.293 14.707Z" fill="#161A3E"/>
+                      </svg>
+                    '),
+                    span("Pull Trends")
+                  ),
+                  div(class = "trends-chart-area",
+                    plotlyOutput("pull_trends_chart", width = "100%", height = "277.163px")
                   )
                 )
-              )
-            ),
-            # Pull Trends Card
-            div(class = "stats-card pull-trends",
-              div(class = "stats-card-header",
-                HTML('
-                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path d="M3 3V20C3 20.2652 3.10536 20.5196 3.29289 20.7071C3.48043 20.8946 3.73478 21 4 21H21V19H5V3H3Z" fill="#161A3E"/>
-                    <path d="M15.293 14.707C15.3858 14.7999 15.496 14.8737 15.6173 14.924C15.7386 14.9743 15.8687 15.0002 16 15.0002C16.1313 15.0002 16.2614 14.9743 16.3827 14.924C16.504 14.8737 16.6142 14.7999 16.707 14.707L21.707 9.70697L20.293 8.29297L16 12.586L13.707 10.293C13.6142 10.2 13.504 10.1263 13.3827 10.076C13.2614 10.0257 13.1313 9.99977 13 9.99977C12.8687 9.99977 12.7386 10.0257 12.6173 10.076C12.496 10.1263 12.3858 10.2 12.293 10.293L7.293 15.293L8.707 16.707L13 12.414L15.293 14.707Z" fill="#161A3E"/>
-                  </svg>
-                '),
-                span("Pull Trends")
-              ),
-              div(class = "trends-chart-area",
-                plotlyOutput("pull_trends_chart", width = "100%", height = "277.163px")
               )
             )
           )
@@ -501,12 +576,24 @@ ui <- fluidPage(
 server <- function(input, output, session) {
   # ---- Authentication state ----
   logged_in <- reactiveVal(FALSE)
+  auth_checked <- reactiveVal(FALSE)
   
-  # Output for conditionalPanel
+  # Output for conditionalPanel - logged_in state
   output$logged_in <- reactive({
     logged_in()
   })
   outputOptions(output, "logged_in", suspendWhenHidden = FALSE)
+  
+  # Output for conditionalPanel - authChecked state
+  output$authChecked <- reactive({
+    auth_checked()
+  })
+  outputOptions(output, "authChecked", suspendWhenHidden = FALSE)
+  
+  # Initialize auth check - triggered by JS after 500ms delay
+  observeEvent(input$auth_ready, {
+    auth_checked(TRUE)
+  }, once = TRUE, ignoreInit = TRUE)
   
   # Login handler
   observeEvent(input$login_btn, {
@@ -516,15 +603,27 @@ server <- function(input, output, session) {
     # Authentication
     if (identical(username, "Kurt013") && identical(password, "@GenshinImpact13")) {
       logged_in(TRUE)
+      session$sendCustomMessage("saveLoginState", list(logged_in = TRUE))
       shinytoastr::toastr_success("Welcome, Traveler!", progressBar = TRUE, showMethod = "slideDown")
     } else {
       shinytoastr::toastr_error("Invalid username or password.", progressBar = TRUE, showMethod = "slideDown")
     }
   })
   
+  # Restore session from localStorage
+  observeEvent(input$restore_session, {
+    logged_in(TRUE)
+  }, ignoreNULL = TRUE, ignoreInit = TRUE)
+  
+  # Logout handler
+  observeEvent(input$logout_btn, {
+    logged_in(FALSE)
+    session$sendCustomMessage("saveLoginState", list(logged_in = FALSE))
+    shinytoastr::toastr_info("You have been logged out.", progressBar = TRUE, showMethod = "slideDown")
+  })
+  
   # ---- Reactive data holder ----
   data <- reactiveVal(data.frame())
-
 
 
   # ---- Customize Data table ----
