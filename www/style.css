@@ -169,6 +169,10 @@
   --input-bg: #F4F0E5;
 }
 
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
 
 body {
   height: 100vh;

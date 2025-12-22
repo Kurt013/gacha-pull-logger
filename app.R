@@ -99,6 +99,7 @@ ui <- fluidPage(
 
   tags$head(
     tags$title("Gacha Pull Logger"),
+    tags$link(rel = "icon", type = "image/png", href = "assets/gacha-pull-logger-icon.ico"),
     tags$link(rel = "stylesheet", type = "text/css", href = "style.css"),
 
     tags$script(HTML("
@@ -622,9 +623,9 @@ server <- function(input, output, session) {
     if (identical(username, "Kurt013") && identical(password, "@GenshinImpact13")) {
       logged_in(TRUE)
       session$sendCustomMessage("saveLoginState", list(logged_in = TRUE))
-      shinytoastr::toastr_success("Welcome, Traveler!", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_success("Welcome, Traveler!", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     } else {
-      shinytoastr::toastr_error("Invalid username or password.", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_error("Invalid username or password.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     }
   })
   
@@ -637,7 +638,7 @@ server <- function(input, output, session) {
   observeEvent(input$logout_btn, {
     logged_in(FALSE)
     session$sendCustomMessage("saveLoginState", list(logged_in = FALSE))
-    shinytoastr::toastr_info("You have been logged out.", progressBar = TRUE, showMethod = "slideDown")
+    shinytoastr::toastr_info("You have been logged out.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
   })
   
   # ---- Reactive data holder ----
@@ -680,11 +681,17 @@ server <- function(input, output, session) {
     )
   })
 
-  # Pre-fill form when a row is selected
+  # Pre-fill form when a row is selected, clear when deselected
   observeEvent(input$table_rows_selected, {
     df <- data()
     selected_row <- input$table_rows_selected
-    if (length(selected_row) == 0) return()
+    
+    # If no row selected (deselected), clear the form
+    if (is.null(selected_row) || length(selected_row) == 0) {
+      clear_fields()
+      return()
+    }
+    
     row <- df[selected_row, ]
     
     updateSelectInput(session, "type", selected = row$type)
@@ -692,13 +699,21 @@ server <- function(input, output, session) {
     updateSelectInput(session, "rarity", selected = row$rarity)
     updateSelectInput(session, "banner", selected = row$banner)
     updateDateInput(session, "date", value = as.Date(row$pull_date))
-  })
+  }, ignoreNULL = FALSE)
   
   # ----- CRUD FUNCTIONALITY -----
   # ---- ADD (Create) ----
   observeEvent(input$add, {
     
-    req(nzchar(input$name))
+    # Validate all fields
+    if (is.null(input$type) || !nzchar(input$type) ||
+        is.null(input$name) || !nzchar(input$name) ||
+        is.null(input$rarity) || !nzchar(input$rarity) ||
+        is.null(input$banner) || !nzchar(input$banner) ||
+        is.null(input$date)) {
+      shinytoastr::toastr_warning("Please fill in all fields.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
+      return()
+    }
     
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
@@ -733,10 +748,10 @@ server <- function(input, output, session) {
   
     if (result == 1) {
       # Success
-      shinytoastr::toastr_success("Pull added successfully!", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_success("Pull added successfully!", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     } else {
       # Failure
-      shinytoastr::toastr_error("Failed to add pull.", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_error("Failed to add pull.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     }
 
     clear_fields()
@@ -765,8 +780,20 @@ server <- function(input, output, session) {
   
   # ---- UPDATE ----
   observeEvent(input$update, {
-    req(input$table_rows_selected)
-    req(nzchar(input$name))
+    if (is.null(input$table_rows_selected) || length(input$table_rows_selected) == 0) {
+      shinytoastr::toastr_warning("Please select a row to update.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
+      return()
+    }
+    
+    # Validate all fields
+    if (is.null(input$type) || !nzchar(input$type) ||
+        is.null(input$name) || !nzchar(input$name) ||
+        is.null(input$rarity) || !nzchar(input$rarity) ||
+        is.null(input$banner) || !nzchar(input$banner) ||
+        is.null(input$date)) {
+      shinytoastr::toastr_warning("Please fill in all fields.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
+      return()
+    }
     
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
@@ -806,10 +833,10 @@ server <- function(input, output, session) {
 
     if (result == 1) {
       # Success
-      shinytoastr::toastr_success("Pull updated successfully!", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_success("Pull updated successfully!", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     } else {
       # Failure
-      shinytoastr::toastr_error("Failed to update pull.", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_error("Failed to update pull.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     }
     
     clear_fields()
@@ -819,7 +846,10 @@ server <- function(input, output, session) {
 
   # ---- DELETE ----
   observeEvent(input$delete, {
-    req(input$table_rows_selected)
+    if (is.null(input$table_rows_selected) || length(input$table_rows_selected) == 0) {
+      shinytoastr::toastr_warning("Please select a row to delete.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
+      return()
+    }
     
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
@@ -837,10 +867,10 @@ server <- function(input, output, session) {
 
     if (result == 1) {
       # Success
-      shinytoastr::toastr_success("Pull deleted successfully!", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_success("Pull deleted successfully!", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     } else {
       # Failure
-      shinytoastr::toastr_error("Failed to delete pull.", progressBar = TRUE, showMethod = "slideDown")
+      shinytoastr::toastr_error("Failed to delete pull.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     }
 
     clear_fields()
@@ -851,6 +881,7 @@ server <- function(input, output, session) {
   # ---- CLEAR (Reset form) ----
   observeEvent(input$clear, {
     clear_fields()
+    shinytoastr::toastr_info("Form cleared.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
   })
 
   clear_fields <- function() {
