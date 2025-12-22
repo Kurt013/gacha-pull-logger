@@ -1074,8 +1074,28 @@ server <- function(input, output, session) {
     if (nrow(df) == 0) {
       plotly_empty(type = "scatter", mode = "lines") %>%
         layout(
-          xaxis = list(title = "Month"),
-          yaxis = list(title = "Number of Pulls"),
+          xaxis = list(
+            title = "Month",
+            type = "category",
+            titlefont = list(
+              family = "ContentFont, sans-serif",  # or your custom font
+              color = "#F3EFE4"
+            )
+          ),
+          yaxis = list(
+            title = "Number of Pulls",
+              titlefont = list(
+              family = "ContentFont, sans-serif",  # or your custom font
+              color = "#F3EFE4"
+            )
+          ),
+          plot_bgcolor = "#161A3E",                  # plot area background
+          paper_bgcolor = "#161A3E",                 # full figure background
+          font = list(
+            color = "#F3EFE4",
+            family = "Inter, sans-serif",
+            weight = "normal"
+          ),                  # full figure background
           annotations = list(
             list(
               text = "No data available",
