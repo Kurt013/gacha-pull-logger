@@ -471,12 +471,30 @@ ui <- fluidPage(
                       span(class = "stat-value", textOutput("primogems_spent", inline = TRUE))
                     ),
                     div(class = "stat-row",
-                      span(class = "stat-label", "Luck Index:"),
-                      span(class = "stat-value", textOutput("luck_index", inline = TRUE))
-                    ),
-                    div(class = "stat-row",
                       span(class = "stat-label", "Average Pity:"),
                       span(class = "stat-value", textOutput("avg_pity", inline = TRUE))
+                    ),
+                    div(class = "stat-row",
+                      span(class = "stat-label", "Luck Index:"),
+                      span(class = "stat-value", 
+                        textOutput("luck_index", inline = TRUE),
+                        tags$span(
+                          class = "info-icon",
+                          title = "Luck Index\n\nHow early you get 5★s compared to the game's expected pity.\n\n> 1.0  Earlier than expected\n= 1.0  As expected\n< 1.0  Later than expected",
+                          HTML('
+                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15" fill="none">
+                              <g clip-path="url(#clip0_251_211)">
+                                <path d="M7.5 10V7.5M7.5 5H7.50625M13.75 7.5C13.75 10.9518 10.9518 13.75 7.5 13.75C4.04822 13.75 1.25 10.9518 1.25 7.5C1.25 4.04822 4.04822 1.25 7.5 1.25C10.9518 1.25 13.75 4.04822 13.75 7.5Z" stroke="#1E1E1E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                              </g>
+                              <defs>
+                                <clipPath id="clip0_251_211">
+                                  <rect width="15" height="15" fill="white"/>
+                                </clipPath>
+                              </defs>
+                            </svg>
+                          ')
+                        )
+                      )
                     )
                   )
                 ),
@@ -886,7 +904,7 @@ server <- function(input, output, session) {
     if (nrow(five_stars) == 0) return("N/A")
     avg_pity <- mean(five_stars$pity, na.rm = TRUE)
     luck_index <- 75 / avg_pity
-    sprintf("%.2f%%", luck_index)
+    sprintf("%.2f×", luck_index)
   })
 
   # Average Pity
@@ -962,39 +980,65 @@ server <- function(input, output, session) {
     session$sendCustomMessage("updatePityBar", list(width = pct))
   })
 
-  # Recent Pulls List (last 5 pulls with 4-star or 5-star)
+  # Recent Pulls List
   output$recent_pulls_list <- renderUI({
     df <- data()
     if (nrow(df) == 0) {
       return(div(class = "no-pulls", "No pulls recorded yet"))
     }
-    # Filter to 4-star and 5-star, take last 5
-    rare_pulls <- df[df$rarity %in% c("4-Star", "5-Star"), ]
-    rare_pulls <- head(rare_pulls, 5)
+    
+    # Get 5-star pulls first (up to 5)
+    five_star_pulls <- df[df$rarity == "5-Star", ]
+    five_star_pulls <- head(five_star_pulls, 5)
+    
+    # If less than 5 five-stars, fill remaining with 4-stars
+    remaining_slots <- 5 - nrow(five_star_pulls)
+    four_star_pulls <- data.frame()
+    
+    if (remaining_slots > 0) {
+      four_star_pulls <- df[df$rarity == "4-Star", ]
+      four_star_pulls <- head(four_star_pulls, remaining_slots)
+    }
+    
+    # Combine: 5-stars first, then 4-stars
+    rare_pulls <- rbind(five_star_pulls, four_star_pulls)
+    
     if (nrow(rare_pulls) == 0) {
       return(div(class = "no-pulls", "No rare pulls recorded yet"))
     }
+    
     # SVG star icon
     star_svg <- HTML('
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align:middle;">
         <path d="M17.4536 6.28335C17.3987 6.12135 17.2974 5.97901 17.1624 5.8739C17.0275 5.76878 16.8647 5.7055 16.6941 5.69185L11.7058 5.29547L9.54715 0.517097C9.4784 0.363195 9.36658 0.232478 9.22519 0.140722C9.08379 0.048966 8.91887 9.26441e-05 8.75031 1.31581e-07C8.58175 -9.2381e-05 8.41677 0.0486 8.27527 0.140201C8.13377 0.231801 8.02181 0.362396 7.9529 0.516222L5.79427 5.29547L0.805898 5.69185C0.638296 5.70512 0.478069 5.76641 0.344384 5.86836C0.210698 5.97032 0.109217 6.10863 0.0520795 6.26675C-0.00505783 6.42487 -0.0154315 6.5961 0.0221998 6.75996C0.0598311 6.92382 0.143874 7.07337 0.264273 7.19072L3.95065 10.7843L2.6469 16.4298C2.60731 16.6007 2.62 16.7796 2.68332 16.9432C2.74663 17.1067 2.85765 17.2475 3.00198 17.3472C3.1463 17.4469 3.31725 17.501 3.49266 17.5023C3.66807 17.5036 3.83983 17.4522 3.98565 17.3547L8.75002 14.1785L13.5144 17.3547C13.6634 17.4537 13.8392 17.5046 14.0181 17.5007C14.1969 17.4968 14.3703 17.4382 14.5149 17.3328C14.6594 17.2274 14.7683 17.0802 14.8267 16.9112C14.8851 16.7421 14.8904 16.5591 14.8418 16.387L13.2414 10.787L17.2104 7.21522C17.4703 6.98072 17.5657 6.61497 17.4536 6.28335Z" fill="currentColor"/>
       </svg>
     ')
+    
     pull_items <- lapply(seq_len(nrow(rare_pulls)), function(i) {
       row <- rare_pulls[i, ]
       star_count <- if (row$rarity == "5-Star") 5 else 4
       stars_html <- HTML(paste(rep(as.character(star_svg), star_count), collapse = ""))
       border_color <- if (row$rarity == "5-Star") "gold" else "purple"
+      
+      # Pity display: 5-star shows their pity (up to 90), 4-star shows pity mod 10 (1-10 range)
+      if (row$rarity == "5-Star") {
+        pity_display <- row$pity
+      } else {
+        # 4-star pity: use modulo 10, but 0 becomes 10
+        pity_mod <- row$pity %% 10
+        pity_display <- if (pity_mod == 0) 10 else pity_mod
+      }
+      
       div(class = paste("recent-pull-item", border_color),
         span(class = "pull-stars", stars_html),
         span(class = "pull-name", row$name),
-        span(class = paste("pull-pity", if (row$rarity == "5-Star") "stars-5" else "stars-4"), row$pity)
+        span(class = paste("pull-pity", if (row$rarity == "5-Star") "stars-5" else "stars-4"), pity_display)
       )
     })
     do.call(tagList, pull_items)
   })
 
-output$pull_trends_chart <- renderPlotly({
+  output$pull_trends_chart <- renderPlotly({
     df <- data()
     if (nrow(df) == 0) {
       plotly_empty(type = "scatter", mode = "lines") %>%

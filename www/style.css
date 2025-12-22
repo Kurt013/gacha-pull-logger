@@ -595,6 +595,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 530px;
 }
 
 .input-card {
@@ -995,11 +996,32 @@ table, th, td {
 }
 
 .stat-value {
+  display: flex;
+  gap: 4px;
+
   font-family: "InterFont";
   font-weight: bold;
   font-size: 16px;
   color: var(--dark-secondary-color);
 }
+
+/* Info Icon */
+.info-icon {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: help;
+}
+
+.info-icon svg {
+  width: 15px;
+  height: 15px;
+}
+
+.info-icon:hover svg path {
+  stroke: #3A45A4;
+}
+
 
 /* Current Progress Card */
 .current-progress {
