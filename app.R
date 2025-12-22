@@ -42,10 +42,10 @@ compute_pity <- function(conn, banner_name) {
     WHERE banners.banner_name = ?
     ORDER BY pulls.id
   ", params = list(banner_name))
-  if (nrow(pulls) == 0) return(0)
+  if (nrow(pulls) == 0) return(1)  # First pull starts at pity 1
   last5 <- tail(which(pulls$rarity == "5-Star"), 1)
-  if (length(last5) == 0) return(nrow(pulls))
-  nrow(pulls) - last5
+  if (length(last5) == 0) return(nrow(pulls) + 1)  # No 5-star yet, next pity is count + 1
+  nrow(pulls) - last5 + 1  # Pulls since last 5-star + 1
 }
 
 recalculate_all_pity <- function(conn) {
@@ -61,7 +61,7 @@ recalculate_all_pity <- function(conn) {
     for (i in seq_len(nrow(pulls))) {
       dbExecute(conn, "UPDATE pulls SET pity = ? WHERE id = ?", list(pity, pulls$id[i]))
       if (pulls$rarity[i] == "5-Star") {
-        pity <- 1
+        pity <- 1  # Reset to 1 for NEXT pull (this 5-star keeps its pity value)
       } else {
         pity <- pity + 1
       }
@@ -897,28 +897,40 @@ server <- function(input, output, session) {
     round(mean(five_stars$pity, na.rm = TRUE))
   })
 
-  # Current Pity (pulls left until hard pity for selected banner)
+  # Current Pity (current pity count for selected banner)
   output$current_pity <- renderText({
     df <- data()
     banner_filter <- input$progress_banner
     if (is.null(banner_filter)) return(0)
     banner_df <- df[df$banner == banner_filter, ]
     if (nrow(banner_df) == 0) return(0)
-    # Get the pity value of the latest (most recent) entry for this banner
-    latest_pity <- banner_df$pity[1]
+    # Get the most recent pull for this banner
+    latest_row <- banner_df[1, ]
+    # If the latest pull was a 5-star, current pity is 0 (just reset)
+    if (latest_row$rarity == "5-Star") {
+      return(0)
+    }
+    # Otherwise, return the pity value of the latest pull
+    latest_pity <- latest_row$pity
     if (is.null(latest_pity) || is.na(latest_pity)) return(0)
     latest_pity
   })
 
-  # Pity pulls ago
+  # Pity pulls ago (pulls until hard pity)
   output$pity_pulls_ago <- renderText({
     df <- data()
     banner_filter <- input$progress_banner
-    if (is.null(banner_filter)) return(0)
+    if (is.null(banner_filter)) return(90)
     banner_df <- df[df$banner == banner_filter, ]
-    if (nrow(banner_df) == 0) return(0)
-    # Use the pity value of the most recent entry for this banner
-    latest_pity <- banner_df$pity[1]
+    if (nrow(banner_df) == 0) return(90)
+    # Get the most recent pull
+    latest_row <- banner_df[1, ]
+    # If the latest pull was a 5-star, we need 90 pulls for next
+    if (latest_row$rarity == "5-Star") {
+      return(90)
+    }
+    latest_pity <- latest_row$pity
+    if (is.null(latest_pity) || is.na(latest_pity)) return(90)
     pulls_left <- 90 - latest_pity
     pulls_left
   })
@@ -934,9 +946,15 @@ server <- function(input, output, session) {
       if (nrow(banner_df) == 0) {
         pity <- 0
       } else {
-        # Use the pity value of the latest (most recent) entry for this banner
-        pity <- banner_df$pity[1]
-        if (is.null(pity) || is.na(pity)) pity <- 0
+        # Get the most recent pull
+        latest_row <- banner_df[1, ]
+        # If the latest pull was a 5-star, pity resets to 0
+        if (latest_row$rarity == "5-Star") {
+          pity <- 0
+        } else {
+          pity <- latest_row$pity
+          if (is.null(pity) || is.na(pity)) pity <- 0
+        }
       }
     }
     # Calculate percentage for progress bar (empty at 0, full at 90)
