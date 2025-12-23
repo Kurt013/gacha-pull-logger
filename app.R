@@ -52,23 +52,56 @@ compute_pity <- function(conn, banner_name) {
 
 recalculate_all_pity <- function(conn) {
   banners <- dbGetQuery(conn, "SELECT banner_name FROM banners")
-  for (banner in banners$banner_name) {
-    pulls <- dbGetQuery(conn, "
-      SELECT pulls.id, pulls.rarity FROM pulls
-      JOIN banners ON pulls.banner_id = banners.banner_id
-      WHERE banners.banner_name = ?
-      ORDER BY pulls.id
-    ", params = list(banner))
-    pity <- 1
-    for (i in seq_len(nrow(pulls))) {
-      dbExecute(conn, "UPDATE pulls SET pity = ? WHERE id = ?", list(pity, pulls$id[i]))
-      if (pulls$rarity[i] == "5-Star") {
-        pity <- 1  # Reset to 1 for NEXT pull (this 5-star keeps its pity value)
-      } else {
-        pity <- pity + 1
+  
+  # Start transaction for batch updates
+  dbExecute(conn, "BEGIN TRANSACTION")
+  
+  tryCatch({
+    for (banner in banners$banner_name) {
+      pulls <- dbGetQuery(conn, "
+        SELECT pulls.id, pulls.rarity FROM pulls
+        JOIN banners ON pulls.banner_id = banners.banner_id
+        WHERE banners.banner_name = ?
+        ORDER BY pulls.id
+      ", params = list(banner))
+      
+      if (nrow(pulls) == 0) next
+      
+      pity_values <- integer(nrow(pulls))
+      pity <- 1
+      for (i in seq_len(nrow(pulls))) {
+        pity_values[i] <- pity
+        if (pulls$rarity[i] == "5-Star") {
+          pity <- 1
+        } else {
+          pity <- pity + 1
+        }
+      }
+      
+      chunk_size <- 500
+      n_chunks <- ceiling(nrow(pulls) / chunk_size)
+      
+      for (chunk in seq_len(n_chunks)) {
+        start_idx <- (chunk - 1) * chunk_size + 1
+        end_idx <- min(chunk * chunk_size, nrow(pulls))
+        chunk_ids <- pulls$id[start_idx:end_idx]
+        chunk_pity <- pity_values[start_idx:end_idx]
+        
+        case_parts <- paste0("WHEN ", chunk_ids, " THEN ", chunk_pity, collapse = " ")
+        sql <- sprintf(
+          "UPDATE pulls SET pity = CASE id %s END WHERE id IN (%s)",
+          case_parts,
+          paste(chunk_ids, collapse = ",")
+        )
+        dbExecute(conn, sql)
       }
     }
-  }
+    
+    dbExecute(conn, "COMMIT")
+  }, error = function(e) {
+    dbExecute(conn, "ROLLBACK")
+    stop(e)
+  })
 }
 
 # -------------------------
