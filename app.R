@@ -1,9 +1,11 @@
 library(shiny)
+library(shinyjs)
 library(shinytoastr)
 library(DT)
 library(DBI)
 library(RSQLite)
 library(plotly)
+library(readxl)
 
 DB_FILE <- "gacha_logger.db"
 
@@ -95,6 +97,7 @@ loaderUI <- function() {
 }
 
 ui <- fluidPage(
+  shinyjs::useShinyjs(),
   shinytoastr::useToastr(),
 
   tags$head(
@@ -568,13 +571,34 @@ ui <- fluidPage(
                 # Pull Trends Card
                 div(class = "stats-card pull-trends",
                   div(class = "stats-card-header",
-                    HTML('
-                      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M3 3V20C3 20.2652 3.10536 20.5196 3.29289 20.7071C3.48043 20.8946 3.73478 21 4 21H21V19H5V3H3Z" fill="#161A3E"/>
-                        <path d="M15.293 14.707C15.3858 14.7999 15.496 14.8737 15.6173 14.924C15.7386 14.9743 15.8687 15.0002 16 15.0002C16.1313 15.0002 16.2614 14.9743 16.3827 14.924C16.504 14.8737 16.6142 14.7999 16.707 14.707L21.707 9.70697L20.293 8.29297L16 12.586L13.707 10.293C13.6142 10.2 13.504 10.1263 13.3827 10.076C13.2614 10.0257 13.1313 9.99977 13 9.99977C12.8687 9.99977 12.7386 10.0257 12.6173 10.076C12.496 10.1263 12.3858 10.2 12.293 10.293L7.293 15.293L8.707 16.707L13 12.414L15.293 14.707Z" fill="#161A3E"/>
-                      </svg>
-                    '),
-                    span("Pull Trends")
+                    div(class = "header-left",
+                      HTML('
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                          <path d="M3 3V20C3 20.2652 3.10536 20.5196 3.29289 20.7071C3.48043 20.8946 3.73478 21 4 21H21V19H5V3H3Z" fill="#161A3E"/>
+                          <path d="M15.293 14.707C15.3858 14.7999 15.496 14.8737 15.6173 14.924C15.7386 14.9743 15.8687 15.0002 16 15.0002C16.1313 15.0002 16.2614 14.9743 16.3827 14.924C16.504 14.8737 16.6142 14.7999 16.707 14.707L21.707 9.70697L20.293 8.29297L16 12.586L13.707 10.293C13.6142 10.2 13.504 10.1263 13.3827 10.076C13.2614 10.0257 13.1313 9.99977 13 9.99977C12.8687 9.99977 12.7386 10.0257 12.6173 10.076C12.496 10.1263 12.3858 10.2 12.293 10.293L7.293 15.293L8.707 16.707L13 12.414L15.293 14.707Z" fill="#161A3E"/>
+                        </svg>
+                      '),
+                      span("Pull Trends")
+                    ),
+                    actionButton(
+                      "import_data",
+                      label = tagList(
+                        HTML('
+                          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                            <g clip-path="url(#clip0_253_262)">
+                              <path d="M10.5842 0.00745044L0.298469 1.92035C0.124841 1.95271 0 2.10743 0 2.28043V15.7158C0 15.8888 0.124841 16.0435 0.298469 16.0758L10.5842 17.9887C10.6071 17.993 10.6301 18 10.6531 18C10.7377 18 10.8166 17.9747 10.8827 17.9212C10.9673 17.8523 11.0204 17.7468 11.0204 17.6399V0.356274C11.0204 0.249377 10.9673 0.143885 10.8827 0.0749647C10.798 0.00604391 10.6918 -0.0122412 10.5842 0.00745044ZM11.7551 2.15665V4.67719H12.4898V5.39734H11.7551V7.19772H12.4898V7.91787H11.7551V9.71825H12.4898V10.4384H11.7551V12.5989H12.4898V13.319H11.7551V15.8395H17.2653C17.67 15.8395 18 15.516 18 15.1194V2.87681C18 2.48016 17.67 2.15665 17.2653 2.15665H11.7551ZM13.2245 4.67719H16.1633V5.39734H13.2245V4.67719ZM2.45663 5.64489H4.33929L5.32653 7.65907C5.40402 7.81801 5.4729 8.01352 5.53316 8.23294H5.54464C5.58339 8.10213 5.658 7.89677 5.76276 7.63656L6.85332 5.64489H8.57526L6.52041 8.97559L8.63265 12.3738H6.8074L5.61352 10.1796C5.56904 10.098 5.52312 9.94752 5.47577 9.7295H5.46429C5.44133 9.83218 5.3868 9.99253 5.30357 10.2021L4.10969 12.3738H2.27296L4.46556 9.00935L2.45663 5.64489ZM13.2245 7.19772H16.1633V7.91787H13.2245V7.19772ZM13.2245 9.71825H16.1633V10.4384H13.2245V9.71825ZM13.2245 12.5989H16.1633V13.319H13.2245V12.5989Z" fill="currentColor"/>
+                            </g>
+                            <defs>
+                              <clipPath id="clip0_253_262">
+                                <rect width="18" height="18" fill="white"/>
+                              </clipPath>
+                            </defs>
+                          </svg>
+                        '),
+                        "Import"
+                      ),
+                      class = "btn-import"
+                    )
                   ),
                   div(class = "trends-chart-area",
                     plotlyOutput("pull_trends_chart", width = "100%", height = "277.163px")
@@ -882,6 +906,255 @@ server <- function(input, output, session) {
   observeEvent(input$clear, {
     clear_fields()
     shinytoastr::toastr_info("Form cleared.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
+  })
+
+  # ---- IMPORT DATA (Show modal) ----
+  observeEvent(input$import_data, {
+    showModal(modalDialog(
+      title = div(class = "import-modal-header",
+        HTML('
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+            <g clip-path="url(#clip0_253_262)">
+              <path d="M10.5842 0.00745044L0.298469 1.92035C0.124841 1.95271 0 2.10743 0 2.28043V15.7158C0 15.8888 0.124841 16.0435 0.298469 16.0758L10.5842 17.9887C10.6071 17.993 10.6301 18 10.6531 18C10.7377 18 10.8166 17.9747 10.8827 17.9212C10.9673 17.8523 11.0204 17.7468 11.0204 17.6399V0.356274C11.0204 0.249377 10.9673 0.143885 10.8827 0.0749647C10.798 0.00604391 10.6918 -0.0122412 10.5842 0.00745044ZM11.7551 2.15665V4.67719H12.4898V5.39734H11.7551V7.19772H12.4898V7.91787H11.7551V9.71825H12.4898V10.4384H11.7551V12.5989H12.4898V13.319H11.7551V15.8395H17.2653C17.67 15.8395 18 15.516 18 15.1194V2.87681C18 2.48016 17.67 2.15665 17.2653 2.15665H11.7551ZM13.2245 4.67719H16.1633V5.39734H13.2245V4.67719ZM2.45663 5.64489H4.33929L5.32653 7.65907C5.40402 7.81801 5.4729 8.01352 5.53316 8.23294H5.54464C5.58339 8.10213 5.658 7.89677 5.76276 7.63656L6.85332 5.64489H8.57526L6.52041 8.97559L8.63265 12.3738H6.8074L5.61352 10.1796C5.56904 10.098 5.52312 9.94752 5.47577 9.7295H5.46429C5.44133 9.83218 5.3868 9.99253 5.30357 10.2021L4.10969 12.3738H2.27296L4.46556 9.00935L2.45663 5.64489ZM13.2245 7.19772H16.1633V7.91787H13.2245V7.19772ZM13.2245 9.71825H16.1633V10.4384H13.2245V9.71825ZM13.2245 12.5989H16.1633V13.319H13.2245V12.5989Z" fill="currentColor"/>
+            </g>
+            <defs>
+              <clipPath id="clip0_253_262">
+                <rect width="18" height="18" fill="white"/>
+              </clipPath>
+            </defs>
+          </svg>
+        '),
+        span("Import from Excel")
+      ),
+      div(class = "import-modal-content",
+        div(class = "import-instructions",
+          p("Upload your pull history records (.xlsx)."),
+          p(class = "import-note", "Only Character Event, Weapon Event, and Standard Event Banners will be imported.")
+        ),
+        fileInput(
+          "import_file",
+          label = NULL,
+          accept = c(".xlsx", ".xls"),
+          buttonLabel = "Browse...",
+          placeholder = "No file selected"
+        ),
+        div(class = "import-preview",
+          uiOutput("import_preview_table")
+        )
+      ),
+      footer = tagList(
+        actionButton("cancel_import", "Cancel", class = "btn-modal-cancel"),
+        actionButton("confirm_import", "Import", class = "btn-modal-import")
+      ),
+      size = "m",
+      easyClose = TRUE
+    ))
+  })
+  
+  # Preview uploaded file - show only supported sheets
+  output$import_preview_table <- renderUI({
+    req(input$import_file)
+    
+    tryCatch({
+      # Get all sheet names
+      all_sheets <- excel_sheets(input$import_file$datapath)
+      
+      # Only process these sheets
+      supported_sheets <- c("Character Event", "Weapon Event", "Standard")
+      banner_map <- list(
+        "Character Event" = "Character Event Wish",
+        "Weapon Event" = "Weapon Event Wish",
+        "Standard" = "Standard Wish"
+      )
+      
+      # Filter to supported sheets only
+      sheets <- intersect(all_sheets, supported_sheets)
+      
+      if (length(sheets) == 0) {
+        return(div(class = "import-error", "No supported sheets found. Expected: Character Event, Weapon Event, or Standard."))
+      }
+      
+      # Read each supported sheet and count rows
+      sheet_info <- lapply(sheets, function(sheet) {
+        df <- read_excel(input$import_file$datapath, sheet = sheet)
+        list(sheet = sheet, banner = banner_map[[sheet]], rows = nrow(df))
+      })
+      
+      total_rows <- sum(sapply(sheet_info, function(x) x$rows))
+      
+      div(
+        p(class = "preview-label", paste("Found", total_rows, "pulls to import:")),
+        tags$table(class = "preview-table",
+          tags$thead(
+            tags$tr(
+              tags$th("Sheet"),
+              tags$th("Banner"),
+              tags$th("Pulls")
+            )
+          ),
+          tags$tbody(
+            lapply(sheet_info, function(info) {
+              tags$tr(
+                tags$td(info$sheet),
+                tags$td(info$banner),
+                tags$td(info$rows)
+              )
+            })
+          )
+        )
+      )
+    }, error = function(e) {
+      div(class = "import-error", paste("Error reading file:", e$message))
+    })
+  })
+  
+  # Cancel import
+  observeEvent(input$cancel_import, {
+    removeModal()
+  })
+  
+  # Confirm import
+  observeEvent(input$confirm_import, {
+    req(input$import_file)
+    
+    # Disable button to prevent consecutive clicks
+    shinyjs::disable("confirm_import")
+    
+    # Show processing indicator
+    withProgress(message = "Importing pulls...", value = 0, {
+      tryCatch({
+        # Get all sheet names
+        all_sheets <- excel_sheets(input$import_file$datapath)
+        
+        # Only process these sheets
+        supported_sheets <- c("Character Event", "Weapon Event", "Standard")
+        banner_map <- list(
+          "Character Event" = "Character Event Wish",
+          "Weapon Event" = "Weapon Event Wish",
+          "Standard" = "Standard Event Wish"
+        )
+        
+        # Filter to supported sheets only
+        sheets <- intersect(all_sheets, supported_sheets)
+        
+        if (length(sheets) == 0) {
+          shinytoastr::toastr_error(
+            "No supported sheets found in file.",
+            progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE
+          )
+          return()
+        }
+        
+        conn <- conn_db()
+        on.exit(dbDisconnect(conn), add = TRUE)
+        
+        imported_count <- 0
+        total_sheets <- length(sheets)
+        
+        # Process each supported sheet
+        for (sheet_idx in seq_along(sheets)) {
+          sheet <- sheets[sheet_idx]
+          
+          incProgress(1 / total_sheets, detail = paste("Processing", sheet, "..."))
+          
+          df <- read_excel(input$import_file$datapath, sheet = sheet)
+          
+          if (nrow(df) == 0) next
+          
+          # Get banner name
+          banner_name <- banner_map[[sheet]]
+          
+          # Insert banner if not exists
+          dbExecute(conn, "INSERT OR IGNORE INTO banners (banner_name) VALUES (?)", banner_name)
+          
+          # Get banner_id
+          banner_id <- dbGetQuery(conn, "SELECT banner_id FROM banners WHERE banner_name = ?", banner_name)$banner_id
+          
+          # Paimon.moe columns: Type, Name, Time, ⭐
+          col_names <- names(df)
+          
+          # Find required columns
+          name_col <- col_names[grepl("^name$", col_names, ignore.case = TRUE)][1]
+          type_col <- col_names[grepl("^type$", col_names, ignore.case = TRUE)][1]
+          rarity_col <- col_names[grepl("⭐|star|rarity", col_names, ignore.case = TRUE)][1]
+          date_col <- col_names[grepl("time|date", col_names, ignore.case = TRUE)][1]
+          
+          if (is.na(name_col)) {
+            shinytoastr::toastr_warning(
+              paste("Sheet", sheet, "missing 'Name' column, skipping..."),
+              progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE
+            )
+            next
+          }
+          
+          # Process each row
+          for (i in seq_len(nrow(df))) {
+            row <- df[i, ]
+            
+            # Extract only needed data
+            item_name <- as.character(row[[name_col]])
+            item_type <- if (!is.na(type_col)) as.character(row[[type_col]]) else "Unknown"
+            
+            # Handle rarity
+            if (!is.na(rarity_col)) {
+              rarity_val <- row[[rarity_col]]
+              if (is.numeric(rarity_val)) {
+                item_rarity <- paste0(as.integer(rarity_val), "-Star")
+              } else {
+                item_rarity <- as.character(rarity_val)
+                if (grepl("^[345]$", item_rarity)) {
+                  item_rarity <- paste0(item_rarity, "-Star")
+                }
+              }
+            } else {
+              item_rarity <- "3-Star"
+            }
+            
+            # Handle date
+            if (!is.na(date_col)) {
+              date_val <- row[[date_col]]
+              if (inherits(date_val, c("POSIXct", "POSIXlt", "Date"))) {
+                item_date <- as.character(as.Date(date_val))
+              } else {
+                item_date <- as.character(date_val)
+              }
+            } else {
+              item_date <- as.character(Sys.Date())
+            }
+            
+            # Compute pity and insert
+            pity <- compute_pity(conn, banner_name)
+            
+            result <- dbExecute(
+              conn,
+              "INSERT INTO pulls (banner_id, type, name, rarity, pull_date, pity) VALUES (?, ?, ?, ?, ?, ?)",
+              list(banner_id, item_type, item_name, item_rarity, item_date, pity)
+            )
+            
+            if (result == 1) imported_count <- imported_count + 1
+          }
+        }
+        
+        # Recalculate all pity values
+        incProgress(0, detail = "Recalculating pity...")
+        recalculate_all_pity(conn)
+        
+        removeModal()
+        refresh()
+        
+        shinytoastr::toastr_success(
+          paste("Successfully imported", imported_count, "pulls!"),
+          progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE
+        )
+        
+      }, error = function(e) {
+        shinyjs::enable("confirm_import")
+        shinytoastr::toastr_error(
+          paste("Import failed:", e$message),
+          progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE
+        )
+      })
+    })
   })
 
   clear_fields <- function() {

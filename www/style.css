@@ -157,7 +157,7 @@
   --blue-accent-color: #3A45A4;
   --brown-accent-color: #C5B496;
   
-  --green: #46825E;
+  --green: #46825e;
   --blue: #346184;
   --red: #993B37;
   --orange: #FA8700;
@@ -956,6 +956,10 @@ table, th, td {
   margin-bottom: 8px;
 }
 
+.pull-trends .stats-card-header {
+  justify-content: space-between;
+}
+
 .stats-card-header {
   font-family: "HeaderFont";
   font-size: 16px;
@@ -973,7 +977,15 @@ table, th, td {
 }
 
 .pull-trends .stats-card-header {
-  background: linear-gradient(90deg, #161A3E 0.02%, #3A45A4 22.7%);
+  background: none;
+  -webkit-text-fill-color: initial;
+}
+
+.pull-trends .stats-card-header .header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(90deg, #161A3E 0.02%, #3A45A4 50%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -1119,7 +1131,7 @@ table, th, td {
 .pity-bar {
   width: 100%;
   height: 12px;
-  background: linear-gradient(90deg, #46825E 0%, #FA8700 72.65%, #993B37 100%);
+  background: linear-gradient(90deg, var(--green) 0%, var(--orange) 72.65%, #993B37 100%);
   border-radius: 64px;
   overflow: hidden;
   position: relative;
@@ -1158,7 +1170,7 @@ table, th, td {
 
 .pity-bar-fill {
   height: 100%;
-  background: linear-gradient(90deg, #46825E 0%, #FA8700 80%, #993B37 100%);
+  background: linear-gradient(90deg, var(--green) 0%, var(--orange) 80%, var(--red) 100%);
   border-radius: 64px;
   transition: width 0.3s ease, background-size 0.3s ease;
   background-size: 100% 100%;
@@ -1307,4 +1319,216 @@ table, th, td {
   border-radius: var(--card-radius);
   color: var(--primary-color);
   font-family: "ContentFont";
+}
+
+/* -------------------------
+   Import Button Styles
+------------------------- */
+.btn-import {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  background-color: var(--green);
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-family: "HeaderFont", sans-serif;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-import .action-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-import:hover {
+  background-color: #3a6e4e;
+}
+
+.btn-import:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(70, 130, 94, 0.4);
+}
+
+.btn-import svg {
+  flex-shrink: 0;
+}
+
+/* -------------------------
+   Import Modal Styles
+------------------------- */
+.modal-content {
+  background-color: var(--primary-color) !important;
+  border-radius: var(--card-radius) !important;
+  border: none !important;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--dark-primary-color) !important;
+  padding: 16px 20px !important;
+}
+
+.modal-title {
+  width: 100%;
+}
+
+.import-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: "HeaderFont", sans-serif;
+  font-size: 18px;
+  color: var(--dark-secondary-color);
+}
+
+.import-modal-header svg {
+  color: var(--green);
+}
+
+.modal-body {
+  padding: 20px !important;
+}
+
+.import-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.import-instructions {
+  font-family: "ContentFont", sans-serif;
+  color: var(--secondary-color);
+}
+
+.import-instructions p {
+  margin: 0 0 4px 0;
+}
+
+.import-note {
+  font-size: 12px;
+  color: var(--gray);
+  font-style: italic;
+}
+
+/* File Input Styling */
+.import-modal-content .form-group {
+  margin-bottom: 0;
+}
+
+.import-modal-content .btn-default {
+  display: flex;
+  align-items: center;
+  background-color: var(--green);
+  color: white;
+  border: none;
+  font-family: "ContentFont", sans-serif;
+  border-radius: 5px 0 0 5px;
+  height: 40px;
+  line-height: 1.5;
+}
+
+.import-modal-content .btn-default:hover {
+  background-color: #3a6e4e;
+}
+
+.import-modal-content .form-control {
+  border: 1px solid var(--dark-primary-color);
+  border-radius: 0 5px 5px 0 !important;
+  font-family: "ContentFont", sans-serif;
+  border-left: none;
+}
+
+/* Preview Table */
+.import-preview {
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.preview-label {
+  font-family: "ContentFont", sans-serif;
+  font-size: 14px;
+  color: var(--secondary-color);
+  margin-bottom: 8px;
+}
+
+.preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: "InterFont", sans-serif;
+  font-size: 12px;
+}
+
+.preview-table th {
+  background-color: var(--dark-primary-color);
+  color: var(--dark-secondary-color);
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.preview-table td {
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--dark-primary-color);
+  color: var(--secondary-color);
+}
+
+.preview-table tr:hover td {
+  background-color: var(--dark-primary-color);
+}
+
+.preview-more {
+  font-family: "ContentFont", sans-serif;
+  font-size: 12px;
+  color: var(--gray);
+  font-style: italic;
+  margin-top: 8px;
+}
+
+.import-error {
+  color: var(--red);
+  font-family: "ContentFont", sans-serif;
+  font-size: 14px;
+}
+
+/* Modal Footer */
+.modal-footer {
+  border-top: 1px solid var(--dark-primary-color) !important;
+  padding: 12px 20px !important;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.btn-modal-cancel {
+  background-color: var(--gray);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-family: "ContentFont", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-modal-cancel:hover {
+  background-color: #5a5a5a;
+}
+
+.btn-modal-import {
+  background-color: var(--green);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 5px;
+  font-family: "ContentFont", sans-serif;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.btn-modal-import:hover {
+  background-color: #3a6e4e;
 }
