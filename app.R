@@ -90,8 +90,7 @@ loaderUI <- function() {
         ),
         div(class = "loader l1"),
         div(class = "loader l2")
-      ),
-      div(class = "loader-text", "Loading...")
+      )
     )
   )
 }
@@ -160,50 +159,13 @@ ui <- fluidPage(
           localStorage.removeItem('gacha_logged_in');
         }
       });
-      
-      // Loader slide-up animation handler (manual trigger)
-      Shiny.addCustomMessageHandler('hideLoader', function(message) {
-        var loader = $('.loader-overlay');
-        if (loader.length && !loader.hasClass('slide-up')) {
-          loader.addClass('slide-up');
-          // Hide completely after animation finishes
-          setTimeout(function() {
-            loader.addClass('hidden');
-          }, 500);
-        }
-      });
-      
-      // Wait for authChecked output to be set, then wait for panel to render
-      $(document).on('shiny:value', function(event) {
-        // Only react to authChecked output
-        if (event.name === 'authChecked' && event.value === true) {
-          // Give panels time to render after authChecked becomes true
-          setTimeout(function() {
-            var loginVisible = $('.login-page').is(':visible');
-            var mainVisible = $('.container').is(':visible');
-            
-            if (loginVisible || mainVisible) {
-              var loader = $('.loader-overlay');
-              if (loader.length && !loader.hasClass('slide-up')) {
-                loader.addClass('slide-up');
-                setTimeout(function() {
-                  loader.addClass('hidden');
-                }, 500);
-              }
-            }
-          }, 100); // Small delay for panel rendering
-        }
-      });
     "))
   ),
   
-  # Loader Panel (always rendered, controlled via JS)
   loaderUI(),
-  
-  # Login Panel (shown when not logged in and auth is checked)
-  conditionalPanel(
-    condition = "output.authChecked && !output.logged_in",
-    div(class = "login-page",
+
+  shinyjs::hidden(
+    div(id = "login_panel", class = "login-page",
       div(class = "blur-overlay"),
       div(class = "login-panel",
         # Decorative border image
@@ -265,7 +227,6 @@ ui <- fluidPage(
             )
           ),
           
-          # Login button
           actionButton(
             "login_btn",
             label = "Login",
@@ -276,11 +237,8 @@ ui <- fluidPage(
     )
   ),
   
-  # Main App (shown when logged in and auth is checked)
-  conditionalPanel(
-    condition = "output.authChecked && output.logged_in",
-    div(class ="container",   
-      # Header with title and logout
+  shinyjs::hidden(
+    div(id = "main_panel", class = "container",   
       div(class = "header-row",
         div(class = "header-title",
             "Gacha Pull", br(),
@@ -291,7 +249,6 @@ ui <- fluidPage(
       ),
 
       # Input Fields Card
-
       div(class = "panel-wrapper",
         div(class="logout-container", 
           actionButton(
@@ -610,7 +567,7 @@ ui <- fluidPage(
         )
       )
     )
-  ) # End of conditionalPanel for main app
+  )
 )
 
 # -------------------------
@@ -621,17 +578,28 @@ server <- function(input, output, session) {
   logged_in <- reactiveVal(FALSE)
   auth_checked <- reactiveVal(FALSE)
   
-  # Output for conditionalPanel - logged_in state
-  output$logged_in <- reactive({
-    logged_in()
+  # Show/hide panels based on auth state (server-controlled)
+  observe({
+    if (auth_checked()) {
+      if (logged_in()) {
+        shinyjs::hide("login_panel")
+        shinyjs::show("main_panel")
+      } else {
+        shinyjs::show("login_panel")
+        shinyjs::hide("main_panel")
+      }
+      # Hide loader with slide-up animation
+      shinyjs::runjs("
+        var loader = $('.loader-overlay');
+        if (loader.length && !loader.hasClass('slide-up')) {
+          loader.addClass('slide-up');
+          setTimeout(function() {
+            loader.hide();
+          }, 500);
+        }
+      ")
+    }
   })
-  outputOptions(output, "logged_in", suspendWhenHidden = FALSE)
-  
-  # Output for conditionalPanel - authChecked state
-  output$authChecked <- reactive({
-    auth_checked()
-  })
-  outputOptions(output, "authChecked", suspendWhenHidden = FALSE)
   
   # Initialize auth check - triggered by JS after 500ms delay
   observeEvent(input$auth_ready, {
@@ -671,6 +639,7 @@ server <- function(input, output, session) {
 
   # ---- Customize Data table ----
   output$table <- renderDT({
+    req(logged_in())
     
     df <- data()
 
@@ -707,6 +676,7 @@ server <- function(input, output, session) {
 
   # Pre-fill form when a row is selected, clear when deselected
   observeEvent(input$table_rows_selected, {
+    req(logged_in())
     df <- data()
     selected_row <- input$table_rows_selected
     
@@ -728,6 +698,7 @@ server <- function(input, output, session) {
   # ----- CRUD FUNCTIONALITY -----
   # ---- ADD (Create) ----
   observeEvent(input$add, {
+    req(logged_in())
     
     # Validate all fields
     if (is.null(input$type) || !nzchar(input$type) ||
@@ -785,6 +756,8 @@ server <- function(input, output, session) {
 
   # ---- READ ----
   refresh <- function() {
+    if (!logged_in()) return()
+    
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
     
@@ -800,10 +773,15 @@ server <- function(input, output, session) {
     data(df)
   }
 
-  refresh()
+  # Initial refresh after login
+  observeEvent(logged_in(), {
+    if (logged_in()) refresh()
+  })
   
   # ---- UPDATE ----
   observeEvent(input$update, {
+    req(logged_in())
+    
     if (is.null(input$table_rows_selected) || length(input$table_rows_selected) == 0) {
       shinytoastr::toastr_warning("Please select a row to update.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
       return()
@@ -870,6 +848,8 @@ server <- function(input, output, session) {
 
   # ---- DELETE ----
   observeEvent(input$delete, {
+    req(logged_in())
+    
     if (is.null(input$table_rows_selected) || length(input$table_rows_selected) == 0) {
       shinytoastr::toastr_warning("Please select a row to delete.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
       return()
@@ -904,12 +884,14 @@ server <- function(input, output, session) {
 
   # ---- CLEAR (Reset form) ----
   observeEvent(input$clear, {
+    req(logged_in())
     clear_fields()
     shinytoastr::toastr_info("Form cleared.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
   })
 
   # ---- IMPORT DATA (Show modal) ----
   observeEvent(input$import_data, {
+    req(logged_in())
     showModal(modalDialog(
       title = div(class = "import-modal-header",
         HTML('
@@ -953,6 +935,7 @@ server <- function(input, output, session) {
   
   # Preview uploaded file - show only supported sheets
   output$import_preview_table <- renderUI({
+    req(logged_in())
     req(input$import_file)
     
     tryCatch({
@@ -1010,11 +993,13 @@ server <- function(input, output, session) {
   
   # Cancel import
   observeEvent(input$cancel_import, {
+    req(logged_in())
     removeModal()
   })
   
   # Confirm import
   observeEvent(input$confirm_import, {
+    req(logged_in())
     req(input$import_file)
     
     # Disable button to prevent consecutive clicks
@@ -1174,6 +1159,7 @@ server <- function(input, output, session) {
   # ---- ANALYTICS OUTPUTS ----
   # Total Pulls
   output$total_pulls <- renderText({
+    req(logged_in())
     df <- data()
 
     pulls <- if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) {
@@ -1187,6 +1173,7 @@ server <- function(input, output, session) {
 
   # Primogems Spent (160 per pull)
   output$primogems_spent <- renderText({
+    req(logged_in())
     df <- data()
 
     if (is.null(df) || nrow(df) == 0) {
@@ -1198,6 +1185,7 @@ server <- function(input, output, session) {
 
   # Luck Index (expected pity / average pity)
   output$luck_index <- renderText({
+    req(logged_in())
     df <- data()
 
     if (is.null(df) || nrow(df) == 0) {
@@ -1213,6 +1201,7 @@ server <- function(input, output, session) {
 
   # Average Pity
   output$avg_pity <- renderText({
+    req(logged_in())
     df <- data()
     five_stars <- df[df$rarity == "5-Star", ]
     if (nrow(five_stars) == 0) return("N/A")
@@ -1221,6 +1210,7 @@ server <- function(input, output, session) {
 
   # Current Pity (current pity count for selected banner)
   output$current_pity <- renderText({
+    req(logged_in())
     df <- data()
     banner_filter <- input$progress_banner
     if (is.null(banner_filter)) return(0)
@@ -1240,6 +1230,7 @@ server <- function(input, output, session) {
 
   # Pity pulls ago (pulls until hard pity)
   output$pity_pulls_ago <- renderText({
+    req(logged_in())
     df <- data()
     banner_filter <- input$progress_banner
     if (is.null(banner_filter)) return(90)
@@ -1259,6 +1250,7 @@ server <- function(input, output, session) {
 
   # Update pity bar fill width
   observe({
+    req(logged_in())
     df <- data()
     banner_filter <- input$progress_banner
     if (is.null(banner_filter)) {
@@ -1286,6 +1278,7 @@ server <- function(input, output, session) {
 
   # Recent Pulls List
   output$recent_pulls_list <- renderUI({
+    req(logged_in())
     df <- data()
     if (nrow(df) == 0) {
       return(div(class = "no-pulls", "No pulls recorded yet"))
@@ -1343,6 +1336,7 @@ server <- function(input, output, session) {
   })
 
   output$pull_trends_chart <- renderPlotly({
+    req(logged_in())
     df <- data()
     if (nrow(df) == 0) {
       plotly_empty(type = "scatter", mode = "lines") %>%

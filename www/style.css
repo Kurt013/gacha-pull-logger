@@ -135,12 +135,6 @@
   100% { transform: rotate(360deg); }
 } */
 
-.loader-text {
-  font-family: "ContentFont", sans-serif;
-  font-size: 16px;
-  color: var(--dark-secondary-color);
-  letter-spacing: 2px;
-}
 
 :root {
   /* Customize DataTable */
