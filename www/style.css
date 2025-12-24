@@ -686,7 +686,6 @@ body {
   align-self: end;
   justify-self: stretch;
   border-radius: 52px;
-  border: 2px solid var(--brown-accent-color);
   transition: background-color 0.2s ease;
 }
 
@@ -709,7 +708,7 @@ body {
 }
 
 .btn-update .action-label {
-  gap: 10px;
+  gap: 14px;
 }
 
 .btn-delete,
@@ -722,7 +721,7 @@ body {
 }
 
 .btn-delete .action-label {
-  gap: 10px;
+  gap: 12px;
 }
 
 .btn-clear {
@@ -730,7 +729,7 @@ body {
 }
 
 .btn-clear .action-label {
-  gap: 10px;
+  gap: 16px;
 }
 
 

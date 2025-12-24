@@ -776,7 +776,7 @@ server <- function(input, output, session) {
         input$type,
         input$name,
         input$rarity,
-        as.character(input$date),
+        format(input$date, '%Y-%m-%d'),
         pity
       )
     )
@@ -872,7 +872,7 @@ server <- function(input, output, session) {
         input$type,
         input$name,
         input$rarity,
-        as.character(input$date),
+        format(input$date, '%Y-%m-%d'),
         row_id
       )
     )
@@ -1177,13 +1177,9 @@ server <- function(input, output, session) {
             # Handle date
             if (!is.na(date_col)) {
               date_val <- row[[date_col]]
-              if (inherits(date_val, c("POSIXct", "POSIXlt", "Date"))) {
-                item_date <- as.character(as.Date(date_val))
-              } else {
-                item_date <- as.character(date_val)
-              }
+              item_date <- format(as.Date(date_val), '%Y-%m-%d')
             } else {
-              item_date <- as.character(Sys.Date())
+              item_date <- format(Sys.Date(), '%Y-%m-%d')
             }
             
             # Compute pity and insert
@@ -1275,6 +1271,7 @@ server <- function(input, output, session) {
     if (nrow(five_stars) == 0) return("N/A")
     avg_pity <- mean(five_stars$pity, na.rm = TRUE)
     luck_index <- 75 / avg_pity
+    if (!is.finite(luck_index) || is.nan(luck_index)) return("N/A")
     sprintf("%.2f×", luck_index)
   })
 
@@ -1359,6 +1356,13 @@ server <- function(input, output, session) {
   output$recent_pulls_list <- renderUI({
     req(logged_in())
     df <- data()
+
+    # Use the same banner filter as the progress section
+    banner_filter <- input$progress_banner
+    if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
+      df <- df[df$banner == banner_filter, , drop = FALSE]
+    }
+    
     if (nrow(df) == 0) {
       return(div(class = "no-pulls", "No pulls recorded yet"))
     }
@@ -1568,5 +1572,4 @@ server <- function(input, output, session) {
   })
 
 }
-
 shinyApp(ui, server)
