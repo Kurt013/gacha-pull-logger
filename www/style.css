@@ -596,7 +596,8 @@ body {
   display: flex;
   flex-direction: column;
   gap: 16px;
-  min-height: 530px;
+  height: 530px;
+  overflow: hidden;
 }
 
 .input-card {
@@ -743,10 +744,12 @@ label {
 /* Styling of History Table */
 .table-card {
   flex: 1;
-  min-height: 290px;
+  min-height: 0;
   background-color: var(--dark-primary-color);
   border-radius: var(--card-radius);
   padding: 16px;
+  display: flex;
+  flex-direction: column;
 }
 
 .table-card-header {
@@ -915,6 +918,7 @@ table, th, td {
   display: flex;
   gap: 16px;
   width: 100%;
+  height: 530px;
 }
 
 .analytics-left {
@@ -923,6 +927,7 @@ table, th, td {
   flex-direction: column;
   gap: 12px;
   flex-shrink: 0;
+  min-height: 0;
 }
 
 .analytics-right {
@@ -930,6 +935,8 @@ table, th, td {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .stats-card {
@@ -1206,6 +1213,30 @@ table, th, td {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#recent_pulls_list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--dark-secondary-color) #E2D8C9;
+}
+
+#recent_pulls_list::-webkit-scrollbar {
+  width: 6px;
+}
+
+#recent_pulls_list::-webkit-scrollbar-track {
+  background: #E2D8C9;
+  border-radius: 3px;
+}
+
+#recent_pulls_list::-webkit-scrollbar-thumb {
+  background-color: var(--dark-secondary-color);
+  border-radius: 3px;
 }
 
 .recent-pull-item {
@@ -1292,6 +1323,8 @@ table, th, td {
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .trends-chart-area {
@@ -1299,8 +1332,7 @@ table, th, td {
   display: flex;
   flex-direction: column;
   width: 100%;
-  height: 100%;
-  min-height: 277.163px;
+  min-height: 0;
 }
 
 .trends-placeholder {
@@ -1308,7 +1340,7 @@ table, th, td {
   align-items: center;
   justify-content: center;
   flex: 1;
-  min-height: 254px;
+  min-height: 0;
   background: var(--dark-secondary-color);
   border-radius: var(--card-radius);
   color: var(--primary-color);

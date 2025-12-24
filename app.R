@@ -711,6 +711,13 @@ server <- function(input, output, session) {
   observeEvent(input$table_rows_selected, {
     req(logged_in())
     df <- data()
+    
+    # Apply same filter as table display
+    banner_filter <- input$filter
+    if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
+      df <- df[df$banner == banner_filter, , drop = FALSE]
+    }
+    
     selected_row <- input$table_rows_selected
     
     # If no row selected (deselected), clear the form
@@ -835,6 +842,10 @@ server <- function(input, output, session) {
     
     # Get selected row's ID
     df <- data()
+    banner_filter <- input$filter
+    if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
+      df <- df[df$banner == banner_filter, , drop = FALSE]
+    }
     selected_row <- input$table_rows_selected
     if (length(selected_row) == 0) return()
     row_id <- df$id[selected_row]
@@ -891,7 +902,12 @@ server <- function(input, output, session) {
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
     
+    # Apply same filter as table display
     df <- data()
+    banner_filter <- input$filter
+    if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
+      df <- df[df$banner == banner_filter, , drop = FALSE]
+    }
     selected_row <- input$table_rows_selected
     if (length(selected_row) == 0) return()
     row_id <- df$id[selected_row]
