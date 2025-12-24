@@ -1,4 +1,24 @@
-.Rproj.user
+# R session junk
 .Rhistory
 .RData
 .Ruserdata
+*.Rproj.user/
+
+# Logs
+*.log
+logs/
+
+# Temporary / swap files
+tmp/
+temp/
+*.tmp
+*.swp
+
+# Runtime SQLite DB (not committed)
+*.sqlite
+*.sqlite3
+*.db
+
+# OS/editor-specific
+.DS_Store
+Thumbs.db

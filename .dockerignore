@@ -1,0 +1,23 @@
+# Prevent Git files from bloating Docker build
+.git
+.gitignore
+
+# R session junk
+.Rhistory
+.RData
+.Ruserdata
+
+# Logs and temp files
+*.log
+logs/
+tmp/
+temp/
+
+# Ignore all DBs created at runtime
+*.sqlite
+*.sqlite3
+*.db
+
+# OS/editor artifacts
+.DS_Store
+Thumbs.db
