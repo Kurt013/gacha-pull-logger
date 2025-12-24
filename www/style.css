@@ -1,6 +1,6 @@
 @font-face {
   font-family: "HeaderFont";
-  src: url("fonts/drip_font.ttf") format("truetype");
+  src: url("fonts/drip_font.woff2") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -8,7 +8,7 @@
 
 @font-face {
   font-family: "ContentFont";
-  src: url("fonts/content_font.ttf") format("truetype");
+  src: url("fonts/content_font.woff2") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -16,7 +16,7 @@
 
 @font-face {
   font-family: "InterFont";
-  src: url("fonts/inter_font.ttf") format("truetype");
+  src: url("fonts/inter_font.woff2") format("truetype");
   font-weight: normal;
   font-style: normal;
   font-display: swap;
@@ -183,7 +183,7 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
-  background: url("assets/logger_bg.png") top left / 100% 100% no-repeat;
+  background: url("assets/logger_bg.webp") top left / 100% 100% no-repeat;
   
   font-size: 16px;
 }
@@ -204,7 +204,7 @@ body {
 .blur-overlay {
   position: absolute;
   inset: 0;
-  background: url("assets/logger_bg.png") top left / 100% 100% no-repeat;
+  background: url("assets/logger_bg.webp") top left / 100% 100% no-repeat;
   filter: blur(3.65px);
   z-index: -1;
 }
@@ -475,7 +475,7 @@ body {
   
   width: 482px;
   height: 124px;
-  background: url("assets/header_banner.png") center / cover no-repeat;
+  background: url("assets/header_banner.webp") center / cover no-repeat;
 }
 
 .logout-container {

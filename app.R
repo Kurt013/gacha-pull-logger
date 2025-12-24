@@ -202,7 +202,7 @@ ui <- fluidPage(
       div(class = "blur-overlay"),
       div(class = "login-panel",
         # Decorative border image
-        img(class = "login-border", src = "assets/login_border.png"),
+        img(class = "login-border", src = "assets/login_border.webp"),
         
         # Login content
         div(class = "login-content",
