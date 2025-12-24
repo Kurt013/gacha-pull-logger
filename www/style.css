@@ -687,6 +687,7 @@ body {
   justify-self: stretch;
   border-radius: 52px;
   border: 2px solid var(--brown-accent-color);
+  transition: background-color 0.2s ease;
 }
 
 .btn-custom .action-label {
@@ -1333,6 +1334,9 @@ table, th, td {
   flex-direction: column;
   width: 100%;
   min-height: 0;
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background-color: var(--dark-secondary-color);
 }
 
 .trends-placeholder {
@@ -1357,7 +1361,6 @@ table, th, td {
   padding: 8px 10px;
   background-color: var(--green);
   color: white;
-  border: none;
   border-radius: 5px;
   font-family: "HeaderFont", sans-serif;
   font-size: 16px;
@@ -1369,10 +1372,6 @@ table, th, td {
   display: flex;
   align-items: center;
   gap: 8px;
-}
-
-.btn-import:hover {
-  background-color: #3a6e4e;
 }
 
 .btn-import:focus {
@@ -1408,7 +1407,7 @@ table, th, td {
   gap: 10px;
   font-family: "HeaderFont", sans-serif;
   font-size: 18px;
-  color: var(--dark-secondary-color);
+  color: var(--dark-scondary-color);
 }
 
 .import-modal-header svg {
@@ -1450,7 +1449,6 @@ table, th, td {
   align-items: center;
   background-color: var(--green);
   color: white;
-  border: none;
   font-family: "ContentFont", sans-serif;
   border-radius: 5px 0 0 5px;
   height: 40px;
@@ -1520,6 +1518,58 @@ table, th, td {
   font-size: 14px;
 }
 
+/* Existing Data Warning in Import Modal */
+.existing-data-warning {
+  background: rgba(250, 135, 0, 0.1);
+  border: 1px solid var(--orange);
+  border-radius: 5px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.existing-data-warning .warning-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: "ContentFont", sans-serif;
+  font-size: 14px;
+  color: var(--orange);
+  margin-bottom: 8px;
+}
+
+.existing-data-warning .warning-header svg {
+  flex-shrink: 0;
+  color: var(--orange);
+}
+
+.existing-data-warning .checkbox {
+  margin: 0;
+}
+
+.existing-data-warning .checkbox label {
+  font-family: "ContentFont", sans-serif;
+  font-size: 13px;
+  color: var(--red);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.existing-data-warning input[type="checkbox"] {
+  position: relative;
+  margin-top: 0;
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--red);
+}
+
+.existing-data-warning span {
+  display: flex;
+  align-items: center;
+}
+
 /* Modal Footer */
 .modal-footer {
   border-top: 1px solid var(--dark-primary-color) !important;
@@ -1532,29 +1582,19 @@ table, th, td {
 .btn-modal-cancel {
   background-color: var(--gray);
   color: white;
-  border: none;
   padding: 8px 16px;
   border-radius: 5px;
   font-family: "ContentFont", sans-serif;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.btn-modal-cancel:hover {
-  background-color: #5a5a5a;
 }
 
 .btn-modal-import {
   background-color: var(--green);
   color: white;
-  border: none;
   padding: 8px 16px;
   border-radius: 5px;
   font-family: "ContentFont", sans-serif;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-.btn-modal-import:hover {
-  background-color: #3a6e4e;
 }

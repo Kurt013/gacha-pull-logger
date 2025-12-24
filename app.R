@@ -941,6 +941,10 @@ server <- function(input, output, session) {
   # ---- IMPORT DATA (Show modal) ----
   observeEvent(input$import_data, {
     req(logged_in())
+    
+    # Check for existing data
+    existing_count <- nrow(data())
+    
     showModal(modalDialog(
       title = div(class = "import-modal-header",
         HTML('
@@ -958,6 +962,24 @@ server <- function(input, output, session) {
         span("Import from Excel")
       ),
       div(class = "import-modal-content",
+        # Show existing data warning if data exists
+        if (existing_count > 0) {
+          div(class = "existing-data-warning",
+            div(class = "warning-header",
+              HTML('<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="12"></line>
+                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+              </svg>'),
+              span(paste0("You have ", format(existing_count, big.mark = ","), " existing pull records."))
+            ),
+            checkboxInput(
+              "delete_before_import",
+              label = "Delete all existing data before importing",
+              value = FALSE
+            )
+          )
+        },
         div(class = "import-instructions",
           p("Upload your pull history records (.xlsx)."),
           p(class = "import-note", "Only Character Event, Weapon Event, and Standard Event Banners will be imported.")
@@ -1057,6 +1079,14 @@ server <- function(input, output, session) {
     # Show processing indicator
     withProgress(message = "Importing pulls...", value = 0, {
       tryCatch({
+        # Check if user wants to delete existing data first
+        if (!is.null(input$delete_before_import) && input$delete_before_import == TRUE) {
+          conn_del <- conn_db()
+          dbExecute(conn_del, "DELETE FROM pulls")
+          dbExecute(conn_del, "DELETE FROM banners")
+          dbDisconnect(conn_del)
+        }
+        
         # Get all sheet names
         all_sheets <- excel_sheets(input$import_file$datapath)
         
@@ -1217,7 +1247,7 @@ server <- function(input, output, session) {
       nrow(df)
     }
 
-    as.character(pulls)
+    format(pulls, big.mark = ",")
   })
 
   # Primogems Spent (160 per pull)
