@@ -6,6 +6,7 @@ library(DBI)
 library(RSQLite)
 library(plotly)
 library(readxl)
+library(dplyr)
 
 DB_FILE <- "gacha_logger.db"
 
@@ -104,11 +105,19 @@ recalculate_all_pity <- function(conn) {
   })
 }
 
+get_pity_thresholds <- function(banner) {
+  if (banner == "Weapon Event Wish") {
+    list(soft = 63, hard = 80)
+  } else {
+    list(soft = 74, hard = 90)
+  }
+}
+
+
 # -------------------------
 # UI
 # -------------------------
 
-# Loader UI component
 loaderUI <- function() {
   div(class = "loader-overlay",
     div(class = "loader-container",
@@ -152,6 +161,14 @@ ui <- fluidPage(
           var bgSize = (100 / pct) * 100;
           $('#pity-fill').css('background-size', bgSize + '% 100%');
         }
+      });
+    ")),
+
+    tags$script(HTML("
+      Shiny.addCustomMessageHandler('updateSoftPityMarker', function(message) {
+        var pct = message.percent;
+        $('.soft-pity-indicator').css('left', (pct - 0.17) + '%');
+        $('.marker.soft-pity').css('flex-basis', (pct + 3.5) + '%');
       });
     ")),
 
@@ -201,18 +218,13 @@ ui <- fluidPage(
     div(id = "login_panel", class = "login-page",
       div(class = "blur-overlay"),
       div(class = "login-panel",
-        # Decorative border image
         img(class = "login-border", src = "assets/login_border.webp"),
-        
-        # Login content
         div(class = "login-content",
-          # Title section
           div(class = "login-title",
             div(class = "welcome-text",
               span(class = "welcome-main", "Welcome"),
               span(class = "welcome-sub", "Traveler")
             ),
-            # Subtext box with decorative element
             div(class = "login-subtext-box",
               div(class = "login-decoration",
                 HTML('
@@ -227,7 +239,6 @@ ui <- fluidPage(
             )
           ),
           
-          # Input fields
           div(class = "login-fields",
             div(class = "login-input-group",
               tags$label(`for` = "login_username", "Username"),
@@ -417,7 +428,6 @@ ui <- fluidPage(
                 )
               ),
 
-              # Table Card
               div(class = "table-card",
                   div(class = "table-card-header",
                       div(class = "left-side", 
@@ -450,49 +460,64 @@ ui <- fluidPage(
             title = "Analytics",
             value = "analytics",
             div(class = "analytics-content",
-              # Left column
               div(class = "analytics-left",
-                # Overall Statistics Card
                 div(class = "stats-card overall-stats",
-                  div(class = "stats-card-title", "Overall Statistics"),
+                  div(class = "stats-card-title",
+                    div(class = "stats-card-title-text", "Overall Statistics"),  
+                    tags$span(
+                      class = "info-icon",
+                      title="• Pulls & Primogems: All banners\n• Avg Pity & Luck: Selected banner",
+                      HTML('
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none">
+                          <path d="M9 1.5C4.8645 1.5 1.5 4.8645 1.5 9C1.5 13.1355 4.8645 16.5 9 16.5C13.1355 16.5 16.5 13.1355 16.5 9C16.5 4.8645 13.1355 1.5 9 1.5ZM9.75 12.75H8.25V8.25H9.75V12.75ZM9.75 6.75H8.25V5.25H9.75V6.75Z" fill="#F3EFE4"/>
+                        </svg>
+                      ')
+                    )
+                  ),
                   div(class = "stats-list",
-                    div(class = "stat-row",
-                      span(class = "stat-label", "Total Pulls:"),
-                      span(class = "stat-value", textOutput("total_pulls", inline = TRUE))
+                    div(class = "stats-column",
+                      div(class = "stat-row",
+                        span(class = "stat-label", "Total Pulls:"),
+                        span(class = "stat-value", textOutput("total_pulls", inline = TRUE))
+                      ),
+                      div(class = "stat-row",
+                        span(class = "stat-label", "Primogems Spent:"),
+                        span(class = "stat-value", textOutput("primogems_spent", inline = TRUE))
+                      ),
+                      div(class = "stats-divider", 
+                        div(class = "divider-line")
+                      )
                     ),
-                    div(class = "stat-row",
-                      span(class = "stat-label", "Primogems Spent:"),
-                      span(class = "stat-value", textOutput("primogems_spent", inline = TRUE))
-                    ),
-                    div(class = "stat-row",
-                      span(class = "stat-label", "Average Pity:"),
-                      span(class = "stat-value", textOutput("avg_pity", inline = TRUE))
-                    ),
-                    div(class = "stat-row",
-                      span(class = "stat-label", "Luck Index:"),
-                      span(class = "stat-value", 
-                        textOutput("luck_index", inline = TRUE),
-                        tags$span(
-                          class = "info-icon",
-                          title = "Luck Index\n\nHow early you get 5★s compared to the game's expected pity.\n\n> 1.0  Earlier than expected\n= 1.0  As expected\n< 1.0  Later than expected",
-                          HTML('
-                            <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15" fill="none">
-                              <g clip-path="url(#clip0_251_211)">
-                                <path d="M7.5 10V7.5M7.5 5H7.50625M13.75 7.5C13.75 10.9518 10.9518 13.75 7.5 13.75C4.04822 13.75 1.25 10.9518 1.25 7.5C1.25 4.04822 4.04822 1.25 7.5 1.25C10.9518 1.25 13.75 4.04822 13.75 7.5Z" stroke="#1E1E1E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                              </g>
-                              <defs>
-                                <clipPath id="clip0_251_211">
-                                  <rect width="15" height="15" fill="white"/>
-                                </clipPath>
-                              </defs>
-                            </svg>
-                          ')
+                    div(class = "stats-column",
+                      div(class = "stat-row",
+                        span(class = "stat-label", "Average Pity:"),
+                        span(class = "stat-value", textOutput("avg_pity", inline = TRUE))
+                      ),
+                      div(class = "stat-row",
+                        span(class = "stat-label", "Luck Index:"),
+                        span(class = "stat-value", 
+                          textOutput("luck_index", inline = TRUE),
+                          tags$span(
+                            class = "info-icon",
+                            title = "Luck Index per Banner\n\nHow early you get 5★s compared to the game's expected pity.\n\n> 1.0  Earlier than expected\n= 1.0  As expected\n< 1.0  Later than expected",
+                            HTML('
+                              <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 15 15" fill="none">
+                                <g clip-path="url(#clip0_251_211)">
+                                  <path d="M7.5 10V7.5M7.5 5H7.50625M13.75 7.5C13.75 10.9518 10.9518 13.75 7.5 13.75C4.04822 13.75 1.25 10.9518 1.25 7.5C1.25 4.04822 4.04822 1.25 7.5 1.25C10.9518 1.25 13.75 4.04822 13.75 7.5Z" stroke="#1E1E1E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                </g>
+                                <defs>
+                                  <clipPath id="clip0_251_211">
+                                    <rect width="15" height="15" fill="white"/>
+                                  </clipPath>
+                                </defs>
+                              </svg>
+                            ')
+                          )
                         )
                       )
                     )
                   )
                 ),
-                # Recent Pulls Card
                 div(class = "stats-card recent-pulls-card",
                   div(class = "stats-card-header",
                     HTML('
@@ -506,9 +531,7 @@ ui <- fluidPage(
                   uiOutput("recent_pulls_list")
                 )
               ),
-              # Right column
               div(class = "analytics-right",
-                # Current Progress Card
                 div(class = "stats-card current-progress",
                   div(class = "progress-header",
                     div(class = "progress-title",
@@ -535,13 +558,13 @@ ui <- fluidPage(
                       ),
                       div(class = "pity-counter",
                         span(class = "pity-current", textOutput("current_pity", inline = TRUE)),
-                        span(class = "pity-max", " / 90")
+                        span(class = "pity-max", textOutput("pity_threshold", inline = TRUE))
                       )
                     ),
                     div(class = "pity-bar-container",
                       div(class = "pity-bar-bg",
                         div(class = "pity-bar-fill", style = "width: 0%", id = "pity-fill"),
-                        # Soft pity indicator SVG at 74
+                        # Soft pity indicator SVG at 74 or 64
                         span(class = "soft-pity-indicator",
                           HTML('
                             <svg xmlns="http://www.w3.org/2000/svg" width="4" height="9" viewBox="0 0 1 9" fill="none">
@@ -552,13 +575,13 @@ ui <- fluidPage(
                       ),
                       div(class = "pity-markers",
                         span(class = "marker", "0"),
-                        span(class = "marker soft-pity", "Soft Pity (74)"),
-                        span(class = "marker hard-pity", "Hard Pity (90)")
+                        span(class = "marker soft-pity", id = "soft-pity-marker-text", textOutput("soft_pity_marker", inline = TRUE)),
+                        span(class = "marker hard-pity", textOutput("hard_pity_marker", inline = TRUE))
                       )
                     )
                   )
                 ),
-                # Pull Trends Card
+
                 div(class = "stats-card pull-trends",
                   div(class = "stats-card-header",
                     div(class = "header-left",
@@ -607,7 +630,6 @@ ui <- fluidPage(
 # SERVER
 # -------------------------
 server <- function(input, output, session) {
-  # ---- Authentication state ----
   logged_in <- reactiveVal(FALSE)
   auth_checked <- reactiveVal(FALSE)
   
@@ -621,7 +643,7 @@ server <- function(input, output, session) {
         shinyjs::show("login_panel")
         shinyjs::hide("main_panel")
       }
-      # Hide loader with slide-up animation
+
       shinyjs::runjs("
         var loader = $('.loader-overlay');
         if (loader.length && !loader.hasClass('slide-up')) {
@@ -634,7 +656,6 @@ server <- function(input, output, session) {
     }
   })
   
-  # Initialize auth check - triggered by JS after 500ms delay
   observeEvent(input$auth_ready, {
     auth_checked(TRUE)
   }, once = TRUE, ignoreInit = TRUE)
@@ -643,8 +664,7 @@ server <- function(input, output, session) {
   observeEvent(input$login_btn, {
     username <- input$login_username
     password <- input$login_password
-    
-    # Authentication
+  
     if (identical(username, "Kurt013") && identical(password, "@GenshinImpact13")) {
       logged_in(TRUE)
       session$sendCustomMessage("saveLoginState", list(logged_in = TRUE))
@@ -653,8 +673,7 @@ server <- function(input, output, session) {
       shinytoastr::toastr_error("Invalid username or password.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     }
   })
-  
-  # Restore session from localStorage
+
   observeEvent(input$restore_session, {
     logged_in(TRUE)
   }, ignoreNULL = TRUE, ignoreInit = TRUE)
@@ -665,10 +684,8 @@ server <- function(input, output, session) {
     session$sendCustomMessage("saveLoginState", list(logged_in = FALSE))
     shinytoastr::toastr_info("You have been logged out.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
   })
-  
-  # ---- Reactive data holder ----
-  data <- reactiveVal(data.frame())
 
+  data <- reactiveVal(data.frame())
 
   # ---- Customize Data table ----
   output$table <- renderDT({
@@ -676,7 +693,6 @@ server <- function(input, output, session) {
     
     df <- data()
 
-    # Apply banner filter if not "All"
     banner_filter <- input$filter
     if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
       df <- df[df$banner == banner_filter, , drop = FALSE]
@@ -707,12 +723,10 @@ server <- function(input, output, session) {
     )
   })
 
-  # Pre-fill form when a row is selected, clear when deselected
   observeEvent(input$table_rows_selected, {
     req(logged_in())
     df <- data()
     
-    # Apply same filter as table display
     banner_filter <- input$filter
     if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
       df <- df[df$banner == banner_filter, , drop = FALSE]
@@ -720,7 +734,6 @@ server <- function(input, output, session) {
     
     selected_row <- input$table_rows_selected
     
-    # If no row selected (deselected), clear the form
     if (is.null(selected_row) || length(selected_row) == 0) {
       clear_fields()
       return()
@@ -782,10 +795,8 @@ server <- function(input, output, session) {
     )
   
     if (result == 1) {
-      # Success
       shinytoastr::toastr_success("Pull added successfully!", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     } else {
-      # Failure
       shinytoastr::toastr_error("Failed to add pull.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
     }
 
@@ -840,17 +851,17 @@ server <- function(input, output, session) {
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
     
-    # Get selected row's ID
     df <- data()
+
     banner_filter <- input$filter
     if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
       df <- df[df$banner == banner_filter, , drop = FALSE]
     }
+
     selected_row <- input$table_rows_selected
     if (length(selected_row) == 0) return()
     row_id <- df$id[selected_row]
     
-    # Update banner if needed
     dbExecute(
       conn,
       "INSERT OR IGNORE INTO banners (banner_name) VALUES (?)",
@@ -862,7 +873,6 @@ server <- function(input, output, session) {
       input$banner
     )$banner_id
     
-    # Update the pull
     result <- dbExecute(
       conn,
       "UPDATE pulls SET banner_id = ?, type = ?, name = ?, rarity = ?, pity = ?
@@ -902,7 +912,6 @@ server <- function(input, output, session) {
     conn <- conn_db()
     on.exit(dbDisconnect(conn), add = TRUE)
     
-    # Apply same filter as table display
     df <- data()
     banner_filter <- input$filter
     if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
@@ -931,18 +940,15 @@ server <- function(input, output, session) {
     refresh()
   })
 
-  # ---- CLEAR (Reset form) ----
   observeEvent(input$clear, {
     req(logged_in())
     clear_fields()
     shinytoastr::toastr_info("Form cleared.", progressBar = TRUE, showMethod = "slideDown", preventDuplicates = TRUE)
   })
 
-  # ---- IMPORT DATA (Show modal) ----
   observeEvent(input$import_data, {
     req(logged_in())
-    
-    # Check for existing data
+
     existing_count <- nrow(data())
     
     showModal(modalDialog(
@@ -962,7 +968,6 @@ server <- function(input, output, session) {
         span("Import from Excel")
       ),
       div(class = "import-modal-content",
-        # Show existing data warning if data exists
         if (existing_count > 0) {
           div(class = "existing-data-warning",
             div(class = "warning-header",
@@ -1004,16 +1009,13 @@ server <- function(input, output, session) {
     ))
   })
   
-  # Preview uploaded file - show only supported sheets
   output$import_preview_table <- renderUI({
     req(logged_in())
     req(input$import_file)
     
     tryCatch({
-      # Get all sheet names
       all_sheets <- excel_sheets(input$import_file$datapath)
       
-      # Only process these sheets
       supported_sheets <- c("Character Event", "Weapon Event", "Standard")
       banner_map <- list(
         "Character Event" = "Character Event Wish",
@@ -1021,14 +1023,12 @@ server <- function(input, output, session) {
         "Standard" = "Standard Wish"
       )
       
-      # Filter to supported sheets only
       sheets <- intersect(all_sheets, supported_sheets)
       
       if (length(sheets) == 0) {
         return(div(class = "import-error", "No supported sheets found. Expected: Character Event, Weapon Event, or Standard."))
       }
       
-      # Read each supported sheet and count rows
       sheet_info <- lapply(sheets, function(sheet) {
         df <- read_excel(input$import_file$datapath, sheet = sheet)
         list(sheet = sheet, banner = banner_map[[sheet]], rows = nrow(df))
@@ -1062,24 +1062,19 @@ server <- function(input, output, session) {
     })
   })
   
-  # Cancel import
   observeEvent(input$cancel_import, {
     req(logged_in())
     removeModal()
   })
   
-  # Confirm import
   observeEvent(input$confirm_import, {
     req(logged_in())
     req(input$import_file)
     
-    # Disable button to prevent consecutive clicks
     shinyjs::disable("confirm_import")
     
-    # Show processing indicator
     withProgress(message = "Importing pulls...", value = 0, {
       tryCatch({
-        # Check if user wants to delete existing data first
         if (!is.null(input$delete_before_import) && input$delete_before_import == TRUE) {
           conn_del <- conn_db()
           dbExecute(conn_del, "DELETE FROM pulls")
@@ -1087,10 +1082,8 @@ server <- function(input, output, session) {
           dbDisconnect(conn_del)
         }
         
-        # Get all sheet names
         all_sheets <- excel_sheets(input$import_file$datapath)
         
-        # Only process these sheets
         supported_sheets <- c("Character Event", "Weapon Event", "Standard")
         banner_map <- list(
           "Character Event" = "Character Event Wish",
@@ -1098,7 +1091,6 @@ server <- function(input, output, session) {
           "Standard" = "Standard Event Wish"
         )
         
-        # Filter to supported sheets only
         sheets <- intersect(all_sheets, supported_sheets)
         
         if (length(sheets) == 0) {
@@ -1115,7 +1107,6 @@ server <- function(input, output, session) {
         imported_count <- 0
         total_sheets <- length(sheets)
         
-        # Process each supported sheet
         for (sheet_idx in seq_along(sheets)) {
           sheet <- sheets[sheet_idx]
           
@@ -1125,19 +1116,15 @@ server <- function(input, output, session) {
           
           if (nrow(df) == 0) next
           
-          # Get banner name
           banner_name <- banner_map[[sheet]]
           
-          # Insert banner if not exists
           dbExecute(conn, "INSERT OR IGNORE INTO banners (banner_name) VALUES (?)", banner_name)
           
-          # Get banner_id
           banner_id <- dbGetQuery(conn, "SELECT banner_id FROM banners WHERE banner_name = ?", banner_name)$banner_id
           
           # Paimon.moe columns: Type, Name, Time, ⭐
           col_names <- names(df)
           
-          # Find required columns
           name_col <- col_names[grepl("^name$", col_names, ignore.case = TRUE)][1]
           type_col <- col_names[grepl("^type$", col_names, ignore.case = TRUE)][1]
           rarity_col <- col_names[grepl("⭐|star|rarity", col_names, ignore.case = TRUE)][1]
@@ -1151,15 +1138,12 @@ server <- function(input, output, session) {
             next
           }
           
-          # Process each row
           for (i in seq_len(nrow(df))) {
             row <- df[i, ]
             
-            # Extract only needed data
             item_name <- as.character(row[[name_col]])
             item_type <- if (!is.na(type_col)) as.character(row[[type_col]]) else "Unknown"
             
-            # Handle rarity
             if (!is.na(rarity_col)) {
               rarity_val <- row[[rarity_col]]
               if (is.numeric(rarity_val)) {
@@ -1174,7 +1158,6 @@ server <- function(input, output, session) {
               item_rarity <- "3-Star"
             }
             
-            # Handle date
             if (!is.na(date_col)) {
               date_val <- row[[date_col]]
               item_date <- format(as.Date(date_val), '%Y-%m-%d')
@@ -1182,7 +1165,6 @@ server <- function(input, output, session) {
               item_date <- format(Sys.Date(), '%Y-%m-%d')
             }
             
-            # Compute pity and insert
             pity <- compute_pity(conn, banner_name)
             
             result <- dbExecute(
@@ -1195,7 +1177,6 @@ server <- function(input, output, session) {
           }
         }
         
-        # Recalculate all pity values
         incProgress(0, detail = "Recalculating pity...")
         recalculate_all_pity(conn)
         
@@ -1232,7 +1213,6 @@ server <- function(input, output, session) {
 
   
   # ---- ANALYTICS OUTPUTS ----
-  # Total Pulls
   output$total_pulls <- renderText({
     req(logged_in())
     df <- data()
@@ -1246,7 +1226,7 @@ server <- function(input, output, session) {
     format(pulls, big.mark = ",")
   })
 
-  # Primogems Spent (160 per pull)
+  # 160 primogems per pull
   output$primogems_spent <- renderText({
     req(logged_in())
     df <- data()
@@ -1258,10 +1238,16 @@ server <- function(input, output, session) {
     format(nrow(df) * 160, big.mark = ",")
   })
 
-  # Luck Index (expected pity / average pity)
+  # Expected pity / average pity)
   output$luck_index <- renderText({
     req(logged_in())
+
     df <- data()
+
+    banner_filter <- input$progress_banner
+    if (!is.null(banner_filter) && banner_filter != "") {
+      df <- df[df$banner == banner_filter, , drop = FALSE]
+    }
 
     if (is.null(df) || nrow(df) == 0) {
       return("N/A")
@@ -1270,21 +1256,31 @@ server <- function(input, output, session) {
     five_stars <- df[df$rarity == "5-Star", ]
     if (nrow(five_stars) == 0) return("N/A")
     avg_pity <- mean(five_stars$pity, na.rm = TRUE)
-    luck_index <- 75 / avg_pity
+
+    exp_pity <- 75
+    if (banner_filter == "Weapon Event Wish") {
+      exp_pity <- 65
+    }
+
+    luck_index <- exp_pity / avg_pity
     if (!is.finite(luck_index) || is.nan(luck_index)) return("N/A")
     sprintf("%.2f×", luck_index)
   })
 
-  # Average Pity
   output$avg_pity <- renderText({
     req(logged_in())
     df <- data()
+
+    banner_filter <- input$progress_banner
+    if (!is.null(banner_filter) && banner_filter != "") {
+      df <- df[df$banner == banner_filter, , drop = FALSE]
+    }
+
     five_stars <- df[df$rarity == "5-Star", ]
     if (nrow(five_stars) == 0) return("N/A")
     round(mean(five_stars$pity, na.rm = TRUE))
   })
 
-  # Current Pity (current pity count for selected banner)
   output$current_pity <- renderText({
     req(logged_in())
     df <- data()
@@ -1292,19 +1288,18 @@ server <- function(input, output, session) {
     if (is.null(banner_filter)) return(0)
     banner_df <- df[df$banner == banner_filter, ]
     if (nrow(banner_df) == 0) return(0)
-    # Get the most recent pull for this banner
+
     latest_row <- banner_df[1, ]
-    # If the latest pull was a 5-star, current pity is 0 (just reset)
+
     if (latest_row$rarity == "5-Star") {
       return(0)
     }
-    # Otherwise, return the pity value of the latest pull
+
     latest_pity <- latest_row$pity
     if (is.null(latest_pity) || is.na(latest_pity)) return(0)
     latest_pity
   })
 
-  # Pity pulls ago (pulls until hard pity)
   output$pity_pulls_ago <- renderText({
     req(logged_in())
     df <- data()
@@ -1312,12 +1307,13 @@ server <- function(input, output, session) {
     if (is.null(banner_filter)) return(90)
     banner_df <- df[df$banner == banner_filter, ]
     if (nrow(banner_df) == 0) return(90)
-    # Get the most recent pull
+
     latest_row <- banner_df[1, ]
-    # If the latest pull was a 5-star, we need 90 pulls for next
+
     if (latest_row$rarity == "5-Star") {
       return(90)
     }
+
     latest_pity <- latest_row$pity
     if (is.null(latest_pity) || is.na(latest_pity)) return(90)
     pulls_left <- 90 - latest_pity
@@ -1336,9 +1332,7 @@ server <- function(input, output, session) {
       if (nrow(banner_df) == 0) {
         pity <- 0
       } else {
-        # Get the most recent pull
         latest_row <- banner_df[1, ]
-        # If the latest pull was a 5-star, pity resets to 0
         if (latest_row$rarity == "5-Star") {
           pity <- 0
         } else {
@@ -1347,31 +1341,55 @@ server <- function(input, output, session) {
         }
       }
     }
-    # Calculate percentage for progress bar (empty at 0, full at 90)
-    pct <- min(100, max(0, (pity / 90) * 100))
+
+    thresholds <- get_pity_thresholds(banner_filter)
+    pity_threshold <- thresholds$hard
+
+    pct <- min(100, max(0, (pity / pity_threshold) * 100))
     session$sendCustomMessage("updatePityBar", list(width = pct))
   })
 
-  # Recent Pulls List
+  observe({
+    req(logged_in())
+    banner_filter <- input$progress_banner
+    thresholds <- get_pity_thresholds(banner_filter)
+    soft_pity <- thresholds$soft
+    hard_pity <- thresholds$hard
+    percent <- round((soft_pity / hard_pity) * 100, 2)
+    session$sendCustomMessage("updateSoftPityMarker", list(percent = percent))
+  })
+
+  output$soft_pity_marker <- renderText({
+    thresholds <- get_pity_thresholds(input$progress_banner)
+    paste0("Soft Pity (", thresholds$soft, ")")
+  })
+
+  output$hard_pity_marker <- renderText({
+    thresholds <- get_pity_thresholds(input$progress_banner)
+    paste0("Hard Pity (", thresholds$hard, ")")
+  })
+
+  output$pity_threshold <- renderText({
+    thresholds <- get_pity_thresholds(input$progress_banner)
+    paste0(" / ", thresholds$hard)
+  })
+
   output$recent_pulls_list <- renderUI({
     req(logged_in())
     df <- data()
 
-    # Use the same banner filter as the progress section
     banner_filter <- input$progress_banner
     if (!is.null(banner_filter) && banner_filter != "All (Banner)") {
       df <- df[df$banner == banner_filter, , drop = FALSE]
     }
     
     if (nrow(df) == 0) {
-      return(div(class = "no-pulls", "No pulls recorded yet"))
+      return(div(class = "no-pulls", "No rare pulls recorded yet"))
     }
     
-    # Get 5-star pulls first (up to 5)
     five_star_pulls <- df[df$rarity == "5-Star", ]
     five_star_pulls <- head(five_star_pulls, 5)
     
-    # If less than 5 five-stars, fill remaining with 4-stars
     remaining_slots <- 5 - nrow(five_star_pulls)
     four_star_pulls <- data.frame()
     
@@ -1380,14 +1398,12 @@ server <- function(input, output, session) {
       four_star_pulls <- head(four_star_pulls, remaining_slots)
     }
     
-    # Combine: 5-stars first, then 4-stars
     rare_pulls <- rbind(five_star_pulls, four_star_pulls)
     
     if (nrow(rare_pulls) == 0) {
       return(div(class = "no-pulls", "No rare pulls recorded yet"))
     }
     
-    # SVG star icon
     star_svg <- HTML('
       <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 18 18" fill="none" style="vertical-align:middle;">
         <path d="M17.4536 6.28335C17.3987 6.12135 17.2974 5.97901 17.1624 5.8739C17.0275 5.76878 16.8647 5.7055 16.6941 5.69185L11.7058 5.29547L9.54715 0.517097C9.4784 0.363195 9.36658 0.232478 9.22519 0.140722C9.08379 0.048966 8.91887 9.26441e-05 8.75031 1.31581e-07C8.58175 -9.2381e-05 8.41677 0.0486 8.27527 0.140201C8.13377 0.231801 8.02181 0.362396 7.9529 0.516222L5.79427 5.29547L0.805898 5.69185C0.638296 5.70512 0.478069 5.76641 0.344384 5.86836C0.210698 5.97032 0.109217 6.10863 0.0520795 6.26675C-0.00505783 6.42487 -0.0154315 6.5961 0.0221998 6.75996C0.0598311 6.92382 0.143874 7.07337 0.264273 7.19072L3.95065 10.7843L2.6469 16.4298C2.60731 16.6007 2.62 16.7796 2.68332 16.9432C2.74663 17.1067 2.85765 17.2475 3.00198 17.3472C3.1463 17.4469 3.31725 17.501 3.49266 17.5023C3.66807 17.5036 3.83983 17.4522 3.98565 17.3547L8.75002 14.1785L13.5144 17.3547C13.6634 17.4537 13.8392 17.5046 14.0181 17.5007C14.1969 17.4968 14.3703 17.4382 14.5149 17.3328C14.6594 17.2274 14.7683 17.0802 14.8267 16.9112C14.8851 16.7421 14.8904 16.5591 14.8418 16.387L13.2414 10.787L17.2104 7.21522C17.4703 6.98072 17.5657 6.61497 17.4536 6.28335Z" fill="currentColor"/>
@@ -1400,11 +1416,10 @@ server <- function(input, output, session) {
       stars_html <- HTML(paste(rep(as.character(star_svg), star_count), collapse = ""))
       border_color <- if (row$rarity == "5-Star") "gold" else "purple"
       
-      # Pity display: 5-star shows their pity (up to 90), 4-star shows pity mod 10 (1-10 range)
       if (row$rarity == "5-Star") {
         pity_display <- row$pity
       } else {
-        # 4-star pity: use modulo 10, but 0 becomes 10
+        # 4-star rarity: 1-10 pity
         pity_mod <- row$pity %% 10
         pity_display <- if (pity_mod == 0) 10 else pity_mod
       }
@@ -1428,24 +1443,24 @@ server <- function(input, output, session) {
             title = "Month",
             type = "category",
             titlefont = list(
-              family = "ContentFont, sans-serif",  # or your custom font
+              family = "ContentFont, sans-serif",
               color = "#F3EFE4"
             )
           ),
           yaxis = list(
             title = "Number of Pulls",
               titlefont = list(
-              family = "ContentFont, sans-serif",  # or your custom font
+              family = "ContentFont, sans-serif",
               color = "#F3EFE4"
             )
           ),
-          plot_bgcolor = "#161A3E",                  # plot area background
-          paper_bgcolor = "#161A3E",                 # full figure background
+          plot_bgcolor = "#161A3E",
+          paper_bgcolor = "#161A3E",
           font = list(
             color = "#F3EFE4",
             family = "Inter, sans-serif",
             weight = "normal"
-          ),                  # full figure background
+          ),
           annotations = list(
             list(
               text = "No data available",
@@ -1455,7 +1470,6 @@ server <- function(input, output, session) {
           )
         )
     } else {
-      # Filter by selected banner
       banner_filter <- input$progress_banner
       if (!is.null(banner_filter) && banner_filter != "") {
         df <- df[df$banner == banner_filter, , drop = FALSE]
@@ -1467,19 +1481,19 @@ server <- function(input, output, session) {
               title = "Month",
               type = "category",
               titlefont = list(
-                family = "ContentFont, sans-serif",  # or your custom font
+                family = "ContentFont, sans-serif",
                 color = "#F3EFE4"
               )
             ),
             yaxis = list(
               title = "Number of Pulls",
                 titlefont = list(
-                family = "ContentFont, sans-serif",  # or your custom font
+                family = "ContentFont, sans-serif",
                 color = "#F3EFE4"
               )
             ),
-            plot_bgcolor = "#161A3E",                  # plot area background
-            paper_bgcolor = "#161A3E",                 # full figure background
+            plot_bgcolor = "#161A3E",
+            paper_bgcolor = "#161A3E",
             font = list(
               color = "#F3EFE4",
               family = "Inter, sans-serif",
@@ -1494,19 +1508,17 @@ server <- function(input, output, session) {
             )
           )
       } else {
-        # Filter by selected banner
         banner_filter <- input$progress_banner
         if (!is.null(banner_filter) && banner_filter != "") {
           df <- df[df$banner == banner_filter, , drop = FALSE]
         }
 
         df$month <- format(as.Date(df$pull_date), "%Y-%m")
-        # Count pulls per rarity per month independently
-        library(dplyr)
+
         agg <- df %>%
           group_by(month, rarity) %>%
           summarise(count = n(), .groups = "drop")
-        # Ensure all combinations exist
+
         all_months <- sort(unique(df$month))
         all_rarities <- c("3-Star", "4-Star", "5-Star")
         complete_agg <- tidyr::complete(
@@ -1515,7 +1527,7 @@ server <- function(input, output, session) {
           rarity = all_rarities,
           fill = list(count = 0)
         )
-        # Plot each rarity as its own area (not stacked)
+
         plot_ly(complete_agg, x = ~month) %>%
           add_trace(
             data = subset(complete_agg, rarity == "3-Star"),
@@ -1540,19 +1552,19 @@ server <- function(input, output, session) {
               title = "Month",
               type = "category",
               titlefont = list(
-                family = "ContentFont, sans-serif",  # or your custom font
+                family = "ContentFont, sans-serif",
                 color = "#F3EFE4"
               )
             ),
             yaxis = list(
               title = "Number of Pulls",
                 titlefont = list(
-                family = "ContentFont, sans-serif",  # or your custom font
+                family = "ContentFont, sans-serif",
                 color = "#F3EFE4"
               )
             ),
-            plot_bgcolor = "#161A3E",                  # plot area background
-            paper_bgcolor = "#161A3E",                 # full figure background
+            plot_bgcolor = "#161A3E",
+            paper_bgcolor = "#161A3E",
             font = list(
               color = "#F3EFE4",
               family = "Inter, sans-serif",
@@ -1570,6 +1582,5 @@ server <- function(input, output, session) {
       }
     }
   })
-
 }
 shinyApp(ui, server)

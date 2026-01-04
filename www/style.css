@@ -769,6 +769,10 @@ label {
   margin-bottom: 8px;
 }
 
+.table-card-header svg {
+  margin-bottom: 4px;
+}
+
 .table-card .left-side {
   font-family: "HeaderFont";
   display: flex;
@@ -789,6 +793,7 @@ label {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   font-family: "InterFont";
+  margin-bottom: 4px;
 }
 
 
@@ -807,6 +812,10 @@ label {
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+}
+
+.inline-field label + div {
+  margin-bottom: 4px;
 }
 
 .inline-field .shiny-input-container {
@@ -956,16 +965,29 @@ table, th, td {
   padding: 16px;
 }
 
+.overall-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
 /* Overall Statistics Card Title */
 .stats-card-title {
   background: var(--dark-secondary-color);
   color: var(--dark-primary-color);
   font-family: "HeaderFont";
   font-size: 16px;
-  padding: 7px 32px;
+  padding: 9px 8px 4px 8px;
   border-radius: var(--card-radius);
   text-align: center;
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.stats-card-title svg {
+  margin-bottom: 5.5px;
 }
 
 .pull-trends .stats-card-header {
@@ -1010,8 +1032,36 @@ table, th, td {
 .stats-list {
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.stats-column {
+  display: flex;
+  width: 100%;
+  padding: 0 16px;
+  flex-direction: column;
+  align-items: flex-start;
   gap: 4px;
-  padding-left: 16px;
+  position: relative;
+}
+
+.stats-divider {
+  display: flex;
+  width: 100%;
+  padding: 0 16px;
+  flex-direction: column;
+  align-items: flex-start;
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -8px;
+}
+
+.divider-line {
+  background: rgba(0, 0, 0, 0.30);
+  width: 100%;
+  height: 1px;
 }
 
 .stat-row {
@@ -1155,23 +1205,11 @@ table, th, td {
 .soft-pity-indicator {
   position: absolute;
   top: 0;
-  left: 82.2%; /* (74/90)*100 */
-  transform: translateX(-50%);
   height: 100%;
   display: flex;
   align-items: center;
   z-index: 2;
   pointer-events: none;
-}
-
-.pity-indicator {
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  background: white;
-  border-radius: 64px;
-  transition: width 0.3s ease;
 }
 
 .pity-bar-bg {
@@ -1204,10 +1242,6 @@ table, th, td {
 
 .marker {
   text-align: end;
-}
-
-.marker.soft-pity {
-  flex-basis: 86.2%; /* (74/90)*100 */
 }
 
 .marker.hard-pity {
@@ -1342,6 +1376,10 @@ table, th, td {
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+}
+
+.pull-trends svg, .progress-title svg, .btn-logout svg {
+  margin-bottom: 4px;
 }
 
 .trends-chart-area {
