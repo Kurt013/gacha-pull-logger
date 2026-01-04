@@ -8,10 +8,10 @@ This project allows users to record pulls, analyze pity trends, and manage pull 
 
 ## 📸 Demo
 
-View the live demo here:
+View the live demo here:  
 [Open Live Demo](https://gacha-pull-logger.onrender.com)
 
-Username: Kurt013
+Username: Kurt013  
 Password: @GenshinImpact13
 
 ![Login Page UI](https://raw.githubusercontent.com/Kurt013/gacha-pull-logger/refs/heads/main/www/assets/login-page.png)
