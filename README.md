@@ -8,6 +8,12 @@ This project allows users to record pulls, analyze pity trends, and manage pull 
 
 ## 📸 Demo
 
+View the live demo here:
+[Open Live Demo](https://gacha-pull-logger.onrender.com)
+
+Username: Kurt013
+Password: @GenshinImpact13
+
 ![Login Page UI](https://raw.githubusercontent.com/Kurt013/gacha-pull-logger/refs/heads/main/www/assets/login-page.png)
 
 ![Logger Page UI](https://raw.githubusercontent.com/Kurt013/gacha-pull-logger/refs/heads/main/www/assets/logger-page.png)
@@ -67,6 +73,13 @@ http://localhost:3838
 ![HTML5](https://img.shields.io/badge/HTML5-E34F26?logo=html5&logoColor=white&style=for-the-badge)
 ![CSS3](https://img.shields.io/badge/CSS3-1572B6?logo=css3&logoColor=white&style=for-the-badge)
 ![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=000&style=for-the-badge)
+
+---
+
+## 🎨 Design Prototype
+
+View the full Figma design here:  
+[Open Figma](https://www.figma.com/design/pVGyrisy56GvcW9UbcH0in/Gacha-Pull-Logger--Genshin-Themed-?node-id=0-1&m=dev)
 
 ---
 
