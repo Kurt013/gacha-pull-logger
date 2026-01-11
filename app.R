@@ -898,7 +898,7 @@ server <- function(input, output, session) {
     
     result <- dbExecute(
       conn,
-      "UPDATE pulls SET banner_id = ?, type = ?, name = ?, rarity = ?, pity = ?
+      "UPDATE pulls SET banner_id = ?, type = ?, name = ?, rarity = ?, pull_date = ?
       WHERE id = ?",
       list(
         banner_id,
