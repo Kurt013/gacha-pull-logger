@@ -20,6 +20,8 @@ RUN R -e "install.packages(c( \
     'plotly', \
     'readxl', \
     'dplyr' \
+    'httr', \
+    'jsonlite' \
 ), repos = 'https://cloud.r-project.org')"
 
 # Copy your app to the root of Shiny Server so it's served at /
