@@ -52,6 +52,8 @@ docker run -p 3838:3838 gacha-pull-logger
 http://localhost:3838
 ```
 
+---
+
 ## ✨ Features
 - User authentication and session management
 - Gacha pull CRUD operations
@@ -60,6 +62,7 @@ http://localhost:3838
 - Analytics dashboard (luck index, trends, statistics)
 - Real-time pity visualization with soft/hard pity markers
 - Multi-banner support (Character, Weapon, Standard)
+- **Genshin API Integration** - Fetch character/weapon details (images, descriptions, stats) via [Genshin.jmp.blue API](https://genshin.jmp.blue)
 - Dockerized deployment
 
 ---
@@ -87,8 +90,6 @@ View the full Figma design here:
 
 This project is **not affiliated with, endorsed by, or sponsored by HoYoverse.**
 All game-related names, terms, and concepts referenced are used solely for **descriptive and educational purposes.**
-
-No proprietary assets (game files, artwork, audio, or logos) are included in this repository.
 
 ---
 
