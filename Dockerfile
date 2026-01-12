@@ -19,7 +19,7 @@ RUN R -e "install.packages(c( \
     'RSQLite', \
     'plotly', \
     'readxl', \
-    'dplyr' \
+    'dplyr', \
     'httr', \
     'jsonlite' \
 ), repos = 'https://cloud.r-project.org')"
