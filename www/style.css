@@ -1345,6 +1345,7 @@ table, th, td {
   font-size: 14px;
   color: var(--secondary-color);
   margin-left: 16px;
+  margin-right: 12px;
 }
 
 .pull-pity {
@@ -1665,10 +1666,6 @@ table, th, td {
   font-family: "HeaderFont", sans-serif;
   font-size: 18px;
   color: var(--dark-secondary-color);
-}
-
-.item-detail-modal-header svg {
-  color: var(--blue-accent-color);
 }
 
 .item-detail-modal {

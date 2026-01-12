@@ -1618,11 +1618,13 @@ server <- function(input, output, session) {
   
   # Helper function to convert item name to API-friendly ID
   name_to_api_id <- function(name) {
-    # Convert to lowercase, replace spaces with hyphens, remove special characters
     id <- tolower(name)
-    id <- gsub(" ", "-", id)
-    id <- gsub("[^a-z0-9-]", "", id)
-    return(id)
+    id <- gsub("['’]", "-", id)          # apostrophes to hyphen
+    id <- gsub("[[:space:]]+", "-", id)  # spaces to hyphen
+    id <- gsub("[^a-z0-9-]", "-", id)    # other chars to hyphen
+    id <- gsub("-+", "-", id)            # collapse multiple hyphens
+    id <- gsub("(^-+|-+$)", "", id)      # trim edge hyphens
+    id
   }
   
   # Helper function to fetch item data from Genshin API
@@ -1630,11 +1632,9 @@ server <- function(input, output, session) {
     base_url <- "https://genshin.jmp.blue"
     item_id <- name_to_api_id(item_name)
     
-    # Determine endpoint based on type
     endpoint <- if (tolower(item_type) == "character") "characters" else "weapons"
     
     tryCatch({
-      # Fetch item details
       response <- GET(
         paste0(base_url, "/", endpoint, "/", item_id),
         query = list(lang = "en"),
@@ -1644,12 +1644,9 @@ server <- function(input, output, session) {
       if (status_code(response) == 200) {
         item_data <- fromJSON(content(response, "text", encoding = "UTF-8"))
         
-        # Construct image URL
         if (tolower(item_type) == "character") {
-          # For characters, use gacha-card or icon-big
           image_url <- paste0(base_url, "/", endpoint, "/", item_id, "/gacha-card")
         } else {
-          # For weapons, use icon
           image_url <- paste0(base_url, "/", endpoint, "/", item_id, "/icon")
         }
         
@@ -1816,7 +1813,13 @@ server <- function(input, output, session) {
     
     showModal(modalDialog(
       title = div(class = "item-detail-modal-header",
-        HTML('<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>'),
+        HTML('
+          <svg  xmlns="http://www.w3.org/2000/svg" width="24" height="24"  
+            fill="currentColor" viewBox="0 0 24 24" >
+            <!--Boxicons v3.0.7 https://boxicons.com | License  https://docs.boxicons.com/free-->
+            <path d="M16.41 10.41a.998.998 0 0 0 0-1.82l-4.15-1.84-1.84-4.15a.99.99 0 0 0-.91-.59c-.39 0-.74.23-.91.58L6.75 6.6 2.57 8.61c-.35.17-.57.53-.57.92s.24.74.59.9l4.15 1.84 1.84 4.15a.998.998 0 0 0 1.82 0l1.84-4.15 4.15-1.84ZM21.6 16.39l-2.77-1.23-1.23-2.77a.68.68 0 0 0-.6-.4c-.27-.02-.5.15-.61.39l-1.23 2.67-2.78 1.34c-.23.11-.38.35-.38.61s.16.49.4.6l2.77 1.23 1.23 2.77a.663.663 0 0 0 1.22 0l1.23-2.77 2.77-1.23c.24-.11.4-.35.4-.61s-.16-.5-.4-.61ZM7.76 18.63l-1.66-.74-.74-1.66a.41.41 0 0 0-.36-.24c-.16-.01-.3.09-.37.23l-.74 1.6-1.67.8c-.14.07-.23.21-.23.37s.1.3.24.36l1.66.74.74 1.66a.404.404 0 0 0 .74 0l.74-1.66 1.66-.74a.404.404 0 0 0 0-.74Z"></path>
+          </svg>
+        '),
         span("Item Details")
       ),
       modal_content,
