@@ -217,7 +217,12 @@ ui <- fluidPage(
     ")),
     tags$script(HTML("
       // Handler for clicking recent pull items
+      var recentPullProcessing = false;
       $(document).on('click', '.recent-pull-item', function() {
+        // Prevent multiple clicks while processing
+        if (recentPullProcessing) return;
+        recentPullProcessing = true;
+        
         var itemName = $(this).data('name');
         var itemType = $(this).data('type');
         var itemRarity = $(this).data('rarity');
@@ -231,6 +236,16 @@ ui <- fluidPage(
           pity: itemPity,
           timestamp: Date.now()
         }, {priority: 'event'});
+        
+        // Reset flag after a short delay to allow new clicks
+        setTimeout(function() {
+          recentPullProcessing = false;
+        }, 500);
+      });
+      
+      // Also reset flag when modal is closed
+      $(document).on('hidden.bs.modal', function() {
+        recentPullProcessing = false;
       });
     "))
   ),
